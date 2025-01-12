@@ -1,0 +1,31 @@
+{
+  "name": "@sirajju/use-sync",
+  "version": "1.0.0",
+  "description": "A package for keep updating the states",
+  "keywords": [
+    "React"
+  ],
+  "homepage": "https://github.com/sirajju/use-sync#readme",
+  "bugs": {
+    "url": "https://github.com/sirajju/use-sync/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sirajju/use-sync.git"
+  },
+  "license": "ISC",
+  "author": "Sirajju",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc index.ts types.ts --declaration --declarationMap --outDir dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
