@@ -134,7 +134,6 @@ var syncIndividual = function (name, dispatch) { return __awaiter(void 0, void 0
 }); };
 exports.syncIndividual = syncIndividual;
 var addOnlineListener = function (list, dispatch) {
-    console.log('Registering');
     window.addEventListener("online", function () {
         for (var _i = 0, list_1 = list; _i < list_1.length; _i++) {
             var name_1 = list_1[_i];
