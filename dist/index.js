@@ -67,18 +67,18 @@ var useSync = function (_a) {
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
-                                        url = fetchItems.get(config.name);
+                                        url = fetchItems.get(config.key);
                                         if (!url)
-                                            throw new Error("url not found for ".concat(config.name));
+                                            throw new Error("url not found for ".concat(config.key));
                                         if (config.refetchOnline)
-                                            refetchOnline.push(config.name);
+                                            refetchOnline.push(config.key);
                                         if (config.refetchOnFocus)
-                                            refetchOnFocus.push(config.name);
+                                            refetchOnFocus.push(config.key);
                                         return [4 /*yield*/, fetch(url, config.options || {})];
                                     case 1:
                                         response = _a.sent();
                                         if (!response.ok)
-                                            throw new Error("failedd to fetch ".concat(config.name));
+                                            throw new Error("failedd to fetch ".concat(config.key));
                                         return [4 /*yield*/, response.json()];
                                     case 2:
                                         data = _a.sent();
@@ -114,7 +114,7 @@ var syncIndividual = function (name, dispatch) { return __awaiter(void 0, void 0
             case 0:
                 if (typeof dispatch !== "function")
                     throw new Error("Expected dispatch(useDispatch()) function got ".concat(typeof dispatch));
-                config = orders.find(function (item) { return item.name === name; });
+                config = orders.find(function (item) { return item.key === name; });
                 url = items.get(name);
                 if (!url || !config)
                     throw new Error("no url found for item ".concat(name));
