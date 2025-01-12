@@ -1,5 +1,5 @@
 export type order = {
-    name: string;
+    key: string;
     action: (arg: any) => any;
     refetchOnFocus?: boolean;
     refetchOnline?: boolean;

@@ -27,13 +27,13 @@ const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
 
       try {
         const promises = fetchOrder.map(async (config) => {
-          const url = fetchItems.get(config.name);
-          if (!url) throw new Error(`url not found for ${config.name}`);
+          const url = fetchItems.get(config.key);
+          if (!url) throw new Error(`url not found for ${config.key}`);
 
-          if (config.refetchOnline) refetchOnline.push(config.name);
-          if (config.refetchOnFocus) refetchOnFocus.push(config.name);
+          if (config.refetchOnline) refetchOnline.push(config.key);
+          if (config.refetchOnFocus) refetchOnFocus.push(config.key);
           const response = await fetch(url, config.options || {});
-          if (!response.ok) throw new Error(`failedd to fetch ${config.name}`);
+          if (!response.ok) throw new Error(`failedd to fetch ${config.key}`);
           const data = await response.json();
           dispatch(config.action(data));
         });
@@ -59,7 +59,7 @@ const syncIndividual = async (
     throw new Error(
       `Expected dispatch(useDispatch()) function got ${typeof dispatch}`
     );
-  const config = orders.find((item) => item.name === name);
+  const config = orders.find((item) => item.key === name);
   const url = items.get(name);
   if (!url || !config) throw new Error(`no url found for item ${name}`);
 
