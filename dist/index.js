@@ -1,155 +1,208 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.syncIndividual = exports.useSync = void 0;
-var tslib_1 = require("tslib");
-var react_1 = require("react");
-var react_redux_1 = require("react-redux");
-var orders = [];
-var items = new Map();
-var options;
-var throwErrorNow = function (message) {
-    if (options && options.throwError)
-        throw new Error(message);
-    else
-        console.error(message);
-};
-var myDispatch;
-var useSync = function (_a) {
-    var fetchOrder = _a.fetchOrder, fetchItems = _a.fetchItems, _b = _a.throwError, throwError = _b === void 0 ? true : _b, rest = tslib_1.__rest(_a, ["fetchOrder", "fetchItems", "throwError"]);
-    options = tslib_1.__assign(tslib_1.__assign({}, rest), { fetchItems: fetchItems, fetchOrder: fetchOrder });
-    items = fetchItems;
-    orders = fetchOrder;
-    var _c = tslib_1.__read((0, react_1.useState)({
-        isPending: false,
-        haveError: false,
-    }), 2), syncState = _c[0], setSyncState = _c[1];
-    var dispatch = (0, react_redux_1.useDispatch)();
-    myDispatch = dispatch;
-    (0, react_1.useEffect)(function () {
-        var syncData = function () { return tslib_1.__awaiter(void 0, void 0, void 0, function () {
-            var refetchOnline, refetchOnFocus, promises, error_1;
-            return tslib_1.__generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        refetchOnline = [];
-                        refetchOnFocus = [];
-                        setSyncState({ isPending: true, haveError: false });
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        promises = fetchOrder.map(function (config) { return tslib_1.__awaiter(void 0, void 0, void 0, function () {
-                            var url, response, data;
-                            return tslib_1.__generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        url = fetchItems.get(config.key);
-                                        if (!url)
-                                            return [2, throwErrorNow("url not found for ".concat(config.key))];
-                                        if (config.refetchOnline)
-                                            refetchOnline.push(config.key);
-                                        if (config.refetchOnFocus)
-                                            refetchOnFocus.push(config.key);
-                                        return [4, fetch(url, config.options || {})];
-                                    case 1:
-                                        response = _a.sent();
-                                        if (!response.ok)
-                                            return [2, throwErrorNow("failedd to fetch ".concat(config.key))];
-                                        return [4, response.json()];
-                                    case 2:
-                                        data = _a.sent();
-                                        dispatch(config.action(data));
-                                        return [2];
-                                }
-                            });
-                        }); });
-                        return [4, Promise.all(promises)];
-                    case 2:
-                        _a.sent();
-                        addOnlineListener(refetchOnline, dispatch);
-                        addFocusListener(refetchOnFocus, dispatch);
-                        setSyncState({ isPending: false, haveError: false });
-                        return [3, 4];
-                    case 3:
-                        error_1 = _a.sent();
-                        if (options.onError)
-                            options.onError(error_1);
-                        setSyncState({ isPending: false, haveError: true });
-                        return [3, 4];
-                    case 4: return [2];
+(() => {
+  "use strict";
+  var e = {
+      d: (r, t) => {
+        for (var n in t)
+          e.o(t, n) &&
+            !e.o(r, n) &&
+            Object.defineProperty(r, n, { enumerable: !0, get: t[n] });
+      },
+      o: (e, r) => Object.prototype.hasOwnProperty.call(e, r),
+      r: (e) => {
+        "undefined" != typeof Symbol &&
+          Symbol.toStringTag &&
+          Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }),
+          Object.defineProperty(e, "__esModule", { value: !0 });
+      },
+    },
+    r = {};
+  e.r(r), e.d(r, { syncIndividual: () => d, useSync: () => f });
+  const t = require("tslib"),
+    n = require("react"),
+    o = require("react-redux");
+  var a,
+    i,
+    c = [],
+    s = new Map(),
+    u = function (e) {
+      if (a && a.throwError) throw new Error(e);
+    },
+    f = function (e) {
+      var r = e.fetchOrder,
+        f = e.fetchItems,
+        d =
+          (e.throwError,
+          (0, t.__rest)(e, ["fetchOrder", "fetchItems", "throwError"]));
+      (a = (0, t.__assign)((0, t.__assign)({}, d), {
+        fetchItems: f,
+        fetchOrder: r,
+      })),
+        (s = f),
+        (c = r);
+      var v = (0, t.__read)(
+          (0, n.useState)({ isPending: !1, haveError: !1 }),
+          2
+        ),
+        _ = v[0],
+        y = v[1],
+        p = (0, o.useDispatch)();
+      return (
+        (i = p),
+        (0, n.useEffect)(
+          function () {
+            (0, t.__awaiter)(void 0, void 0, void 0, function () {
+              var e, n, o, i;
+              return (0, t.__generator)(this, function (c) {
+                switch (c.label) {
+                  case 0:
+                    (e = []),
+                      (n = []),
+                      y({ isPending: !0, haveError: !1 }),
+                      (c.label = 1);
+                  case 1:
+                    return (
+                      c.trys.push([1, 3, , 4]),
+                      (o = r.map(function (r) {
+                        return (0,
+                        t.__awaiter)(void 0, void 0, void 0, function () {
+                          var o, a, i;
+                          return (0, t.__generator)(this, function (t) {
+                            switch (t.label) {
+                              case 0:
+                                return (o = f.get(r.key))
+                                  ? (r.refetchOnline && e.push(r.key),
+                                    r.refetchOnFocus && n.push(r.key),
+                                    [4, fetch(o, r.options || {})])
+                                  : [2, u("url not found for ".concat(r.key))];
+                              case 1:
+                                return (a = t.sent()).ok
+                                  ? [4, a.json()]
+                                  : [2, u("failedd to fetch ".concat(r.key))];
+                              case 2:
+                                return (i = t.sent()), p(r.action(i)), [2];
+                            }
+                          });
+                        });
+                      })),
+                      [4, Promise.all(o)]
+                    );
+                  case 2:
+                    return (
+                      c.sent(),
+                      l(e, p),
+                      h(n, p),
+                      y({ isPending: !1, haveError: !1 }),
+                      [3, 4]
+                    );
+                  case 3:
+                    return (
+                      (i = c.sent()),
+                      a.onError && a.onError(i),
+                      y({ isPending: !1, haveError: !0 }),
+                      [3, 4]
+                    );
+                  case 4:
+                    return [2];
                 }
+              });
             });
-        }); };
-        syncData();
-    }, [dispatch]);
-    return syncState;
-};
-exports.useSync = useSync;
-var syncIndividual = function (name_1) {
-    var args_1 = [];
-    for (var _i = 1; _i < arguments.length; _i++) {
-        args_1[_i - 1] = arguments[_i];
-    }
-    return tslib_1.__awaiter(void 0, tslib_1.__spreadArray([name_1], tslib_1.__read(args_1), false), void 0, function (name, dispatch) {
-        var config, url, response, data;
-        if (dispatch === void 0) { dispatch = myDispatch; }
-        return tslib_1.__generator(this, function (_a) {
-            switch (_a.label) {
+          },
+          [p]
+        ),
+        _
+      );
+    },
+    d = function (e) {
+      for (var r = [], n = 1; n < arguments.length; n++)
+        r[n - 1] = arguments[n];
+      return (0, t.__awaiter)(
+        void 0,
+        (0, t.__spreadArray)([e], (0, t.__read)(r), !1),
+        void 0,
+        function (e, r) {
+          var n, o, a, f;
+          return (
+            void 0 === r && (r = i),
+            (0, t.__generator)(this, function (t) {
+              switch (t.label) {
                 case 0:
-                    if (typeof dispatch !== "function")
-                        return [2, throwErrorNow("Expected dispatch(useDispatch()) function got ".concat(typeof dispatch))];
-                    config = orders.find(function (item) { return item.key === name; });
-                    url = items.get(name);
-                    if (!url || !config)
-                        return [2, throwErrorNow("no url found for item ".concat(name))];
-                    return [4, fetch(url, config.options || {})];
+                  return "function" != typeof r
+                    ? [
+                        2,
+                        u(
+                          "Expected dispatch(useDispatch()) function got ".concat(
+                            typeof r
+                          )
+                        ),
+                      ]
+                    : ((n = c.find(function (r) {
+                        return r.key === e;
+                      })),
+                      (o = s.get(e)) && n
+                        ? [4, fetch(o, n.options || {})]
+                        : [2, u("no url found for item ".concat(e))]);
                 case 1:
-                    response = _a.sent();
-                    if (!response.ok) {
-                        return [2, throwErrorNow("Failed to fetch ".concat(name, " ").concat(response.statusText))];
-                    }
-                    return [4, response.json()];
+                  return (a = t.sent()).ok
+                    ? [4, a.json()]
+                    : [
+                        2,
+                        u(
+                          "Failed to fetch ".concat(e, " ").concat(a.statusText)
+                        ),
+                      ];
                 case 2:
-                    data = _a.sent();
-                    dispatch(config.action(data));
-                    return [2, data];
-            }
-        });
-    });
-};
-exports.syncIndividual = syncIndividual;
-var addOnlineListener = function (list, dispatch) {
-    window.addEventListener("online", function () {
-        var e_1, _a;
+                  return (f = t.sent()), r(n.action(f)), [2, f];
+              }
+            })
+          );
+        }
+      );
+    },
+    l = function (e, r) {
+      window.addEventListener("online", function () {
+        var n, o;
         try {
-            for (var list_1 = tslib_1.__values(list), list_1_1 = list_1.next(); !list_1_1.done; list_1_1 = list_1.next()) {
-                var name_1 = list_1_1.value;
-                syncIndividual(name_1, dispatch);
-            }
+          for (
+            var a = (0, t.__values)(e), i = a.next();
+            !i.done;
+            i = a.next()
+          ) {
+            var c = i.value;
+            d(c, r);
+          }
+        } catch (e) {
+          n = { error: e };
+        } finally {
+          try {
+            i && !i.done && (o = a.return) && o.call(a);
+          } finally {
+            if (n) throw n.error;
+          }
         }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (list_1_1 && !list_1_1.done && (_a = list_1.return)) _a.call(list_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    });
-};
-var addFocusListener = function (list, dispatch) {
-    window.addEventListener("focus", function () {
-        var e_2, _a;
+      });
+    },
+    h = function (e, r) {
+      window.addEventListener("focus", function () {
+        var n, o;
         try {
-            for (var list_2 = tslib_1.__values(list), list_2_1 = list_2.next(); !list_2_1.done; list_2_1 = list_2.next()) {
-                var name_2 = list_2_1.value;
-                syncIndividual(name_2, dispatch);
-            }
+          for (
+            var a = (0, t.__values)(e), i = a.next();
+            !i.done;
+            i = a.next()
+          ) {
+            var c = i.value;
+            d(c, r);
+          }
+        } catch (e) {
+          n = { error: e };
+        } finally {
+          try {
+            i && !i.done && (o = a.return) && o.call(a);
+          } finally {
+            if (n) throw n.error;
+          }
         }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (list_2_1 && !list_2_1.done && (_a = list_2.return)) _a.call(list_2);
-            }
-            finally { if (e_2) throw e_2.error; }
-        }
-    });
-};
+      });
+    };
+  module.exports = r;
+})();

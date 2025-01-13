@@ -5,6 +5,9 @@ interface useSyncProps {
     throwError?: boolean;
     onError?: (error: any) => void;
 }
-declare const useSync: ({ fetchOrder, fetchItems, throwError, ...rest }: useSyncProps) => any;
+declare const useSync: ({ fetchOrder, fetchItems, throwError, ...rest }: useSyncProps) => {
+    isPending: boolean;
+    haveError: boolean;
+};
 declare const syncIndividual: (name: string, dispatch?: (action: any) => void) => Promise<any>;
 export { useSync, syncIndividual };
