@@ -8,9 +8,25 @@ let items: Map<string, string> = new Map();
 interface useSyncProps {
   fetchItems: Map<string, string>;
   fetchOrder: order[];
+  throwError?: boolean;
+  onError?: (error: any) => void;
 }
+let options: useSyncProps;
 
-const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
+const throwErrorNow = (message: string) => {
+  if (options && options.throwError) throw new Error(message);
+  else console.error(message);
+};
+
+let myDispatch: any;
+
+const useSync = ({
+  fetchOrder,
+  fetchItems,
+  throwError = true,
+  ...rest
+}: useSyncProps) => {
+  options = { ...rest, fetchItems, fetchOrder };
   items = fetchItems;
   orders = fetchOrder;
   const [syncState, setSyncState] = useState({
@@ -18,6 +34,7 @@ const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
     haveError: false,
   });
   const dispatch = useDispatch();
+  myDispatch = dispatch;
 
   useEffect(() => {
     const syncData = async () => {
@@ -28,12 +45,13 @@ const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
       try {
         const promises = fetchOrder.map(async (config) => {
           const url = fetchItems.get(config.key);
-          if (!url) throw new Error(`url not found for ${config.key}`);
+          if (!url) return throwErrorNow(`url not found for ${config.key}`);
 
           if (config.refetchOnline) refetchOnline.push(config.key);
           if (config.refetchOnFocus) refetchOnFocus.push(config.key);
           const response = await fetch(url, config.options || {});
-          if (!response.ok) throw new Error(`failedd to fetch ${config.key}`);
+          if (!response.ok)
+            return throwErrorNow(`failedd to fetch ${config.key}`);
           const data = await response.json();
           dispatch(config.action(data));
         });
@@ -43,6 +61,7 @@ const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
         addFocusListener(refetchOnFocus, dispatch);
         setSyncState({ isPending: false, haveError: false });
       } catch (error) {
+        if (options.onError) options.onError(error);
         setSyncState({ isPending: false, haveError: true });
       }
     };
@@ -53,22 +72,23 @@ const useSync = ({ fetchOrder, fetchItems }: useSyncProps) => {
 
 const syncIndividual = async (
   name: string,
-  dispatch: (action: any) => void
+  dispatch: (action: any) => void = myDispatch
 ) => {
   if (typeof dispatch !== "function")
-    throw new Error(
+    return throwErrorNow(
       `Expected dispatch(useDispatch()) function got ${typeof dispatch}`
     );
   const config = orders.find((item) => item.key === name);
   const url = items.get(name);
-  if (!url || !config) throw new Error(`no url found for item ${name}`);
+  if (!url || !config) return throwErrorNow(`no url found for item ${name}`);
 
   const response = await fetch(url, config.options || {});
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${name} ${response.statusText}`);
+    return throwErrorNow(`Failed to fetch ${name} ${response.statusText}`);
   }
   const data = await response.json();
   dispatch(config.action(data));
+  return data;
 };
 
 const addOnlineListener = (list: string[], dispatch: (action: any) => void) => {

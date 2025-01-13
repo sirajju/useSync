@@ -22,39 +22,39 @@ npm install @sirajju/use-sync
 ### Basic Example
 
 ```typescript
-import { useSync } from '@sirajju/use-sync';
-import { setUsers, setProducts } from './store/actions';
+import { useSync } from "@sirajju/use-sync";
+import { setUsers, setProducts } from "./store/actions";
 
 function App() {
-  const endpoints = new Map([
-    ['users', 'https://api.example.com/users'],
-    ['products', 'https://api.example.com/products']
-  ]);
+  const endpoints = new Map();
+
+  endPoints.set("users", "https://api.example.com/users");
+  endPoints.set("products", "https://api.example.com/products");
 
   const fetchOrders = [
     {
-      key: 'users',
+      key: "users",
       action: setUsers,
       refetchOnFocus: true,
       refetchOnline: true,
       options: {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json'
-        }
-      }
+          "Content-Type": "application/json",
+        },
+      },
     },
     {
-      key: 'products',
+      key: "products",
       action: setProducts,
       refetchOnFocus: false,
-      refetchOnline: true
-    }
+      refetchOnline: true,
+    },
   ];
 
   const { isPending, haveError } = useSync({
     fetchItems: endpoints,
-    fetchOrder: fetchOrders
+    fetchOrder: fetchOrders,
   });
 
   if (isPending) return <div>Loading...</div>;
@@ -69,18 +69,18 @@ function App() {
 You can also trigger synchronization manually for specific items:
 
 ```typescript
-import { syncIndividual } from '@sirajju/use-sync';
-import { useDispatch } from 'react-redux';
+import { syncIndividual } from "@sirajju/use-sync";
+import { useDispatch } from "react-redux";
 
 function RefreshButton() {
   const dispatch = useDispatch();
 
   const handleRefresh = async () => {
     try {
-      await syncIndividual('users', dispatch);
-      console.log('Users data refreshed');
+      await syncIndividual("users", dispatch);
+      console.log("Users data refreshed");
     } catch (error) {
-      console.error('Failed to refresh users:', error);
+      console.error("Failed to refresh users:", error);
     }
   };
 
@@ -103,11 +103,11 @@ const { isPending, haveError } = useSync({
 
 ```typescript
 type order = {
-  key: string;                      // Unique identifier matching fetchItems key
-  action: (arg: any) => any;       // Redux action creator
-  refetchOnFocus?: boolean;        // Refetch when window gains focus
-  refetchOnline?: boolean;         // Refetch when network connection is restored
-  options?: RequestInit;           // Fetch API options
+  key: string; // Unique identifier matching fetchItems key
+  action: (arg: any) => any; // Redux action creator
+  refetchOnFocus?: boolean; // Refetch when window gains focus
+  refetchOnline?: boolean; // Refetch when network connection is restored
+  options?: RequestInit; // Fetch API options
 };
 ```
 
@@ -123,14 +123,17 @@ syncIndividual(
 ## Features in Detail
 
 1. **Automatic Synchronization**
+
    - Performs initial fetch for all configured endpoints
    - Manages loading and error states
 
 2. **Network Status Integration**
+
    - Automatically refetches data when network connection is restored
    - Configurable per endpoint
 
 3. **Focus-based Updates**
+
    - Refetches data when browser window regains focus
    - Useful for keeping data fresh in long-running applications
 
