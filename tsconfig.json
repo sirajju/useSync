@@ -16,7 +16,7 @@
     "pretty": false,
     "newLine": "lf",
     "sourceMap": false,
-    "noEmitHelpers": true,
+    "noEmitHelpers": false,
     "importHelpers": true,
     "downlevelIteration": true
   },
