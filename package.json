@@ -1,6 +1,6 @@
 {
   "name": "@sirajju/use-sync",
-  "version": "2.3.0",
+  "version": "1.0.1",
   "description": "A package for keep updating the states",
   "keywords": [
     "React"
@@ -16,9 +16,15 @@
   "license": "ISC",
   "author": "Sirajju",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
-    "build": "tsc index.ts types.ts --declaration",
+    "build": "tsc && terser dist/index.js -c -m -o dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -26,6 +32,7 @@
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "terser": "^5.26.0"
   }
 }
