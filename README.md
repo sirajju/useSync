@@ -1,17 +1,21 @@
 # use-sync
 
-A powerful React hook for managing state synchronization with automatic refetching capabilities based on online status and window focus.
+A powerful React hook for managing state synchronization with intelligent caching, logging, and event-driven updates.
 
 ## Features
 
-- 🔄 Automatic state synchronization
-- 🌐 Refetch on network reconnection
-- 👁️ Refetch on window focus
-- 🎯 Configurable fetch options
+- 🚀 Automatic state synchronization
+- 💾 Intelligent request caching
+- 🌐 Network status integration
+- 👁️ Window focus detection
+- 🎯 Custom event triggers
+- 📝 Configurable logging
+- 🛡️ Request deduplication
 - ⚛️ Redux integration
-- 🔍 TypeScript support
-- 💥 Flexible error handling
-- 🔄 Manual sync with return data
+- 💫 Loading states per item
+- 🔄 Manual cache control
+- 📊 Detailed debug information
+- 🎨 TypeScript support
 
 ## Installation
 
@@ -19,13 +23,10 @@ A powerful React hook for managing state synchronization with automatic refetchi
 npm install @sirajju/use-sync
 ```
 
-## Usage
-
-### Basic Example
+## Basic Usage
 
 ```typescript
 import { useSync } from "@sirajju/use-sync";
-import { setUsers, setProducts } from "./store/actions";
 
 function App() {
   const endpoints = new Map([
@@ -39,38 +40,93 @@ function App() {
       action: setUsers,
       refetchOnFocus: true,
       refetchOnline: true,
+      triggerEvents: ['scroll', 'resize'], // Only window events
       options: {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    },
-    {
-      key: "products",
-      action: setProducts,
-      refetchOnFocus: false,
-      refetchOnline: true,
-    },
+        headers: { "Content-Type": "application/json" }
+      }
+    }
   ];
 
-  const { isPending, haveError } = useSync({
+  const { 
+    isPending, 
+    haveError, 
+    loadingItems, 
+    clearCache, 
+    refresh 
+  } = useSync({
     fetchItems: endpoints,
     fetchOrder: fetchOrders,
-    throwError: false, // Optional: controls error handling
-    onError: (error) => {
-      console.error('Sync error:', error);
-    }
+    logger: true,
+    logLevel: "DEBUG",
+    cacheDuration: 5000,
+    onError: (error) => console.error(error)
   });
 
-  if (isPending) return <div>Loading...</div>;
-  if (haveError) return <div>Error occurred</div>;
+  // Access loading state for specific items
+  console.log("Currently loading:", loadingItems);
 
-  return <div>Data loaded successfully!</div>;
+  return <div>{/* Your UI */}</div>;
 }
 ```
 
-### Manual Sync with Data Return
+## Advanced Features
+
+### Cache Control
+
+```typescript
+import { useSync, clearCache } from "@sirajju/use-sync";
+
+// Clear specific item's cache
+clearCache("users");
+
+// Clear all cache
+clearCache();
+
+// Configure cache duration (milliseconds)
+useSync({
+  cacheDuration: 10000,  // 10 seconds
+  // ...other config
+});
+```
+
+### Logging System
+
+```typescript
+useSync({
+  logger: true,
+  logLevel: "DEBUG", // "DEBUG" | "INFO" | "WARN" | "ERROR"
+  // ...other config
+});
+```
+
+### Window Event Triggers
+
+```typescript
+const fetchOrders = [{
+  key: "users",
+  action: setUsers,
+  triggerEvents: ['scroll', 'resize', 'storage'] // Only window events are supported
+}];
+
+// Data will be automatically refetched on these window events
+```
+
+### Available Window Events
+Common events you can use:
+- `scroll` - Window scroll
+- `resize` - Window resize
+- `storage` - LocalStorage changes
+- `offline` - Browser goes offline
+- `online` - Browser goes online
+- `focus` - Window gains focus
+- `blur` - Window loses focus
+- `visibilitychange` - Tab visibility changes
+- `beforeunload` - Before window unload
+- `load` - Window load complete
+- `DOMContentLoaded` - Initial HTML loaded
+- `popstate` - Browser history changes
+
+### Manual Sync with Progress Tracking
 
 ```typescript
 import { syncIndividual } from "@sirajju/use-sync";
@@ -78,15 +134,14 @@ import { syncIndividual } from "@sirajju/use-sync";
 function RefreshButton() {
   const handleRefresh = async () => {
     try {
-      // dispatch is optional - will use internal dispatch if not provided
-      const userData = await syncIndividual("users");
-      console.log("Users data refreshed:", userData);
+      const data = await syncIndividual("users");
+      console.log("Refresh complete:", data);
     } catch (error) {
-      console.error("Failed to refresh users:", error);
+      console.error("Refresh failed:", error);
     }
   };
 
-  return <button onClick={handleRefresh}>Refresh Users</button>;
+  return <button onClick={handleRefresh}>Refresh</button>;
 }
 ```
 
@@ -96,73 +151,62 @@ function RefreshButton() {
 
 ```typescript
 interface useSyncProps {
-  fetchItems: Map<string, string>;  // Map of key-URL pairs
-  fetchOrder: order[];              // Array of fetch configurations
-  throwError?: boolean;             // Control error throwing behavior
-  onError?: (error: any) => void;   // Error callback handler
+  fetchItems: Map<string, string>;    // API endpoints
+  fetchOrder: order[];                // Sync configurations
+  throwError?: boolean;               // Error handling mode
+  onError?: (error: any) => void;     // Error callback
+  logger?: boolean;                   // Enable logging
+  logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  cacheDuration?: number;             // Cache duration in ms
 }
 
-const { isPending, haveError } = useSync(props: useSyncProps);
+interface SyncResult {
+  isPending: boolean;                 // Global loading state
+  haveError: boolean;                 // Error state
+  loadingItems: string[];            // Currently loading items
+  clearCache: (key?: string) => void; // Cache control
+  refresh: () => Promise<void>;       // Manual refresh
+}
 ```
 
 ### Order Configuration
 
 ```typescript
 type order = {
-  key: string;                    // Unique identifier matching fetchItems key
-  action: (arg: any) => any;      // Redux action creator
-  refetchOnFocus?: boolean;       // Refetch when window gains focus
-  refetchOnline?: boolean;        // Refetch when network connection is restored
-  options?: {
-    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-    headers?: HeadersInit;
-    body?: string | FormData | URLSearchParams;
-    mode?: RequestMode;
-    credentials?: RequestCredentials;
-    cache?: RequestCache;
-    redirect?: RequestRedirect;
-    referrer?: string;
-    referrerPolicy?: ReferrerPolicy;
-    integrity?: string;
-    keepalive?: boolean;
-    signal?: AbortSignal;
-  };
+  key: string;                     // Unique identifier
+  action: (data: any) => any;      // Redux action creator
+  refetchOnFocus?: boolean;        // Refetch on window focus
+  refetchOnline?: boolean;         // Refetch when online
+  triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
+  options?: RequestInit;           // Fetch options
 };
-```
-
-### syncIndividual Function
-
-```typescript
-syncIndividual(
-  name: string,                    // Key of the item to sync
-  dispatch?: (action: any) => void // Optional Redux dispatch function
-): Promise<any>                    // Returns the fetched data
 ```
 
 ## Features in Detail
 
-1. **Error Handling**
-   - Configurable error throwing behavior
-   - Optional error callback handler
-   - Console fallback for non-throwing errors
+1. **Smart Caching**
+   - Automatic request deduplication
+   - Configurable cache duration
+   - Manual cache control
+   - Per-item cache management
 
-2. **Automatic Synchronization**
-   - Initial fetch for all configured endpoints
-   - Managed loading and error states
-   - Detailed request configuration support
+2. **Advanced Event System**
+   - Window focus detection
+   - Online/offline handling
+   - Custom event triggers
+   - Cleanup on unmount
 
-3. **Network Status Integration**
-   - Auto-refetch on network reconnection
-   - Configurable per endpoint
+3. **Debugging Tools**
+   - Colored console logging
+   - Configurable log levels
+   - Detailed error tracking
+   - Request timing information
 
-4. **Focus-based Updates**
-   - Refetch on window focus
-   - Keep data fresh in long-running applications
-
-5. **Redux Integration**
-   - Flexible dispatch handling
-   - Optional manual dispatch support
-   - Automatic state updates
+4. **Performance Optimizations**
+   - Request batching
+   - Loading state granularity
+   - Memory leak prevention
+   - Efficient re-render control
 
 ## Requirements
 
