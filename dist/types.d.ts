@@ -3,6 +3,8 @@ export type order = {
     action: (arg: any) => any;
     refetchOnFocus?: boolean;
     refetchOnline?: boolean;
+    initialSync?: boolean;
+    backgroundSync?: boolean;
     triggerEvents?: (keyof WindowEventMap)[];
     options?: {
         method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";

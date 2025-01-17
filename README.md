@@ -4,23 +4,30 @@ A powerful React hook for managing state synchronization with intelligent cachin
 
 ## Features
 
-- 🚀 Automatic state synchronization
-- 💾 Intelligent request caching
-- 🌐 Network status integration
-- 👁️ Window focus detection
-- 🎯 Custom event triggers
-- 📝 Configurable logging
-- 🛡️ Request deduplication
-- ⚛️ Redux integration
-- 💫 Loading states per item
-- 🔄 Manual cache control
+- ⚡ Automatic state synchronization
+- 📦 Intelligent request caching
+- 🔌 Network status integration
+- 🎯 Window focus detection
+- 📡 Custom event triggers
+- 📋 Configurable logging
+- 🔒 Request deduplication
+- 🔄 Redux integration
+- ⏳ Loading states per item
+- 🗑️ Manual cache control
 - 📊 Detailed debug information
-- 🎨 TypeScript support
+- 📘 TypeScript support
 
 ## Installation
 
 ```bash
+# Using npm
 npm install @sirajju/use-sync
+
+# Using yarn
+yarn add @sirajju/use-sync
+
+# Using pnpm
+pnpm add @sirajju/use-sync
 ```
 
 ## Basic Usage
@@ -182,37 +189,88 @@ type order = {
 };
 ```
 
-## Features in Detail
+## TypeScript Type Definitions
 
-1. **Smart Caching**
-   - Automatic request deduplication
-   - Configurable cache duration
-   - Manual cache control
-   - Per-item cache management
+```typescript
+// Core types
+type SyncKey = string;
+type EndpointURL = string;
+type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
 
-2. **Advanced Event System**
-   - Window focus detection
-   - Online/offline handling
-   - Custom event triggers
-   - Cleanup on unmount
+// Configuration interfaces
+interface SyncConfig {
+  fetchItems: Map<SyncKey, EndpointURL>;
+  fetchOrder: SyncOrder[];
+  throwError?: boolean;
+  onError?: ErrorCallback;
+  logger?: boolean;
+  logLevel?: LogLevel;
+  cacheDuration?: number;
+}
 
-3. **Debugging Tools**
-   - Colored console logging
-   - Configurable log levels
-   - Detailed error tracking
-   - Request timing information
+interface SyncOrder {
+  key: SyncKey;
+  action: ActionCreator;
+  refetchOnFocus?: boolean;
+  refetchOnline?: boolean;
+  triggerEvents?: WindowEventName[];
+  options?: RequestInit;
+}
 
-4. **Performance Optimizations**
-   - Request batching
-   - Loading state granularity
-   - Memory leak prevention
-   - Efficient re-render control
+// Result types
+interface SyncResult {
+  isPending: boolean;
+  haveError: boolean;
+  loadingItems: SyncKey[];
+  clearCache: (key?: SyncKey) => void;
+  refresh: () => Promise<void>;
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Cache Not Clearing**
+   ```typescript
+   // Make sure to use the correct key
+   clearCache("exact-key-name");
+   ```
+
+2. **Event Triggers Not Working**
+   ```typescript
+   // Only use valid window events
+   triggerEvents: ['scroll', 'resize'] // ✅ Correct
+   triggerEvents: ['custom-event']     // ❌ Incorrect
+   ```
+
+3. **Redux Integration**
+   ```typescript
+   // Ensure your action creator is properly typed
+   const action: ActionCreator = (data) => ({
+     type: 'SET_DATA',
+     payload: data
+   });
+   ```
+
+### Debug Mode
+
+Enable detailed logging for troubleshooting:
+
+```typescript
+useSync({
+  logger: true,
+  logLevel: "DEBUG",
+  // ...other config
+});
+```
 
 ## Requirements
 
 - React 16.8+
-- Redux
-- React Redux
+- Redux 4.x
+- React Redux 7.x
+- TypeScript 4.x (for TypeScript users)
 
 ## License
 

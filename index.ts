@@ -95,6 +95,7 @@ interface RequestTracker {
 // Add cache and request tracking
 const cache = new Map<string, CacheEntry>();
 const pendingRequests = new Map<string, RequestTracker>();
+const backgroundSyncs = new Map<string, () => void>();
 let CACHE_DURATION = 5 * 1000; // 5 seconds (only used to reduce server requests within short span)
 
 const clearCache = (key?: string) => {
@@ -285,34 +286,46 @@ const useSync = ({
       });
 
       // Execute fetches
-      const promises = currentFetchOrder.map(async (config) => {
-        if (pendingItemsRef.current.includes(config.key)) {
-          logger(`Skipping ${config.key} - already pending`, "WARN");
-          return;
-        }
-
-        const url = currentFetchItems.get(config.key);
-        if (!url) {
-          logger(`URL not found for ${config.key}`, "ERROR");
-          return throwErrorNow(`url not found for ${config.key}`);
-        }
-
-        pendingItemsRef.current = [...pendingItemsRef.current, config.key];
-
-        try {
-          const data = await fetchWithCache(config, url);
-
-          if (mountedRef.current) {
-            dispatch(config.action(data));
-          }
-        } finally {
-          if (mountedRef.current) {
-            pendingItemsRef.current = pendingItemsRef.current.filter(
-              (item) => item !== config.key
+      const promises = currentFetchOrder
+        .map(async (config) => {
+          if (typeof config.initialSync == "boolean" && !config.initialSync)
+            return;
+          if (
+            typeof config.backgroundSync == "boolean" &&
+            config.backgroundSync
+          )
+            return backgroundSyncs.set(config.key, () =>
+              handleSync(config.key)
             );
+
+          if (pendingItemsRef.current.includes(config.key)) {
+            logger(`Skipping ${config.key} - already pending`, "WARN");
+            return;
           }
-        }
-      });
+
+          const url = currentFetchItems.get(config.key);
+          if (!url) {
+            logger(`URL not found for ${config.key}`, "ERROR");
+            return throwErrorNow(`url not found for ${config.key}`);
+          }
+
+          pendingItemsRef.current = [...pendingItemsRef.current, config.key];
+
+          try {
+            const data = await fetchWithCache(config, url);
+
+            if (mountedRef.current) {
+              dispatch(config.action(data));
+            }
+          } finally {
+            if (mountedRef.current) {
+              pendingItemsRef.current = pendingItemsRef.current.filter(
+                (item) => item !== config.key
+              );
+            }
+          }
+        })
+        .filter(Boolean);
 
       await Promise.all(promises);
 
@@ -340,6 +353,12 @@ const useSync = ({
       setSyncState((prev) => ({ ...prev, haveError: true }));
       logger("Sync process failed", "ERROR", { error });
       if (configRef.current.onError) configRef.current.onError(error);
+    } finally {
+      const backgroundSyncEntries = Array.from(backgroundSyncs.entries());
+      for (const [key, callback] of backgroundSyncEntries) {
+        callback();
+        backgroundSyncs.delete(key);
+      }
     }
   }, [dispatch, fetchWithCache, handleSync]);
 

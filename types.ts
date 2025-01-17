@@ -3,7 +3,9 @@ export type order = {
   action: (arg: any) => any;
   refetchOnFocus?: boolean;
   refetchOnline?: boolean;
-  triggerEvents?: (keyof WindowEventMap)[];  // Only window event names like 'scroll', 'resize'
+  initialSync?: boolean;
+  backgroundSync?: boolean;
+  triggerEvents?: (keyof WindowEventMap)[]; // Only window event names like 'scroll', 'resize'
   options?: {
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
     headers?: HeadersInit;
