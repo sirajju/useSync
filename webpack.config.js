@@ -17,9 +17,8 @@ module.exports = {
     minimizer: [new TerserPlugin({
       terserOptions: {
         compress: {
-          drop_console: true,
+          drop_console: false,
           drop_debugger: true,
-          pure_funcs: ['console.log']
         },
         mangle: true,
         format: {

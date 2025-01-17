@@ -17,7 +17,8 @@ interface useSyncProps {
   fetchOrder: order[];
   throwError?: boolean;
   onError?: (error: any) => void;
-  logger?: boolean;
+  log?: boolean;
+  logger?: (message: any) => void;
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
 }
@@ -55,11 +56,12 @@ const logger = (
   level: keyof typeof LogLevels = "INFO",
   details?: any
 ) => {
-  if (!options?.logger || !isLogLevelEnabled(level)) return;
+  if (!options?.log || !isLogLevelEnabled(level)) return;
 
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] %c${level.toUpperCase()}%c: ${message}`;
 
+  if (options.logger) return options.logger(logMessage);
   if (details) {
     (console[level.toLowerCase() as keyof Console] as Function)(
       logMessage,
@@ -276,7 +278,7 @@ const useSync = ({
           };
           eventHandlers.set(`${key}-${event}`, handler);
           // Only add window events
-          if (typeof window !== 'undefined') {
+          if (typeof window !== "undefined") {
             window.addEventListener(event, handler);
           }
         });
@@ -327,7 +329,7 @@ const useSync = ({
         triggerEvents.forEach(({ key, events }) => {
           events.forEach((event) => {
             const handler = eventHandlers.get(`${key}-${event}`);
-            if (handler && typeof window !== 'undefined') {
+            if (handler && typeof window !== "undefined") {
               window.removeEventListener(event, handler);
             }
           });
