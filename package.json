@@ -3,7 +3,12 @@
   "version": "3.5.0",
   "description": "A package for keep updating the states",
   "keywords": [
-    "React"
+    "React",
+    "State management",
+    "Redux",
+    "Caching",
+    "Syncing",
+    "Fetch"
   ],
   "homepage": "https://github.com/sirajju/use-sync#readme",
   "bugs": {
