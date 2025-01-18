@@ -106,6 +106,22 @@ const clearCache = (key?: string) => {
   }
 };
 
+const ObjectIntoUrlParameters = (url: string, object: Record<string, any>) => {
+  if (!object || Object.keys(object).length === 0) return url;
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(object)) {
+    if (value !== undefined && value !== null) {
+      params.append(key, String(value));
+    }
+  }
+
+  const queryString = params.toString();
+  if (!queryString) return url;
+
+  return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
+};
+
 const useSync = ({
   fetchOrder,
   fetchItems,
@@ -184,7 +200,11 @@ const useSync = ({
       const requestPromise = (async () => {
         try {
           logger(`Making fresh request for ${config.key}`, "DEBUG");
-          const response = await fetch(url, config.options || {});
+          const requestParaams = config.options?.params;
+          const requestUrl = requestParaams
+            ? ObjectIntoUrlParameters(url, requestParaams)
+            : url;
+          const response = await fetch(requestUrl, config.options || {});
           if (!response.ok) {
             logger(`Request failed for ${config.key}`, "ERROR", {
               status: response.status,
@@ -436,11 +456,9 @@ const syncIndividual = async (
     });
     dispatch(config.action(data));
     return data;
-  } 
- catch(error) {
-  logger(`Individual sync error : ${error}`,"ERROR")
- }  
-  finally {
+  } catch (error) {
+    logger(`Individual sync error : ${error}`, "ERROR");
+  } finally {
     isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
       (el) => el !== name
     );

@@ -1,277 +1,196 @@
 # use-sync
 
-A powerful React hook for managing state synchronization with intelligent caching, logging, and event-driven updates.
+A powerful React hook for intelligent state synchronization with Redux, featuring advanced caching, window event triggers, and smart request handling.
 
-## Features
-
-- ⚡ Automatic state synchronization
-- 📦 Intelligent request caching
-- 🔌 Network status integration
-- 🎯 Window focus detection
-- 📡 Custom event triggers
-- 📋 Configurable logging
-- 🔒 Request deduplication
-- 🔄 Redux integration
-- ⏳ Loading states per item
-- 🗑️ Manual cache control
-- 📊 Detailed debug information
-- 📘 TypeScript support
-
-## Installation
+## 🚀 Quick Start
 
 ```bash
-# Using npm
 npm install @sirajju/use-sync
-
-# Using yarn
-yarn add @sirajju/use-sync
-
-# Using pnpm
-pnpm add @sirajju/use-sync
 ```
 
-## Basic Usage
+## 📖 Basic Example
 
 ```typescript
 import { useSync } from "@sirajju/use-sync";
 
 function App() {
   const endpoints = new Map([
-    ['users', 'https://api.example.com/users'],
-    ['products', 'https://api.example.com/products']
+    ['users', 'https://api.example.com/users']
   ]);
 
-  const fetchOrders = [
-    {
-      key: "users",
-      action: setUsers,
-      refetchOnFocus: true,
-      refetchOnline: true,
-      triggerEvents: ['scroll', 'resize'], // Only window events
-      options: {
-        headers: { "Content-Type": "application/json" }
-      }
+  const fetchOrders = [{
+    key: "users",
+    action: setUsers,
+    refetchOnFocus: true,
+    refetchOnline: true,
+    initialSync: true,      // Control initial fetch
+    backgroundSync: false,  // Control background syncing
+    triggerEvents: ['scroll', 'resize'],  // Window events only
+    options: {
+      params: { limit: 10, offset: 0 },  // URL parameters
+      headers: { "Content-Type": "application/json" }
     }
-  ];
+  }];
 
   const { 
-    isPending, 
+    isPending,
     haveError, 
-    loadingItems, 
-    clearCache, 
-    refresh 
+    loadingItems,
+    refresh,
+    clearCache 
   } = useSync({
     fetchItems: endpoints,
     fetchOrder: fetchOrders,
     logger: true,
     logLevel: "DEBUG",
-    cacheDuration: 5000,
-    onError: (error) => console.error(error)
+    cacheDuration: 5000
   });
 
-  // Access loading state for specific items
-  console.log("Currently loading:", loadingItems);
-
-  return <div>{/* Your UI */}</div>;
+  return isPending ? <Loading /> : <UserList />;
 }
 ```
 
-## Advanced Features
+## 🎯 Key Features
 
-### Cache Control
-
-```typescript
-import { useSync, clearCache } from "@sirajju/use-sync";
-
-// Clear specific item's cache
-clearCache("users");
-
-// Clear all cache
-clearCache();
-
-// Configure cache duration (milliseconds)
-useSync({
-  cacheDuration: 10000,  // 10 seconds
-  // ...other config
-});
-```
-
-### Logging System
-
-```typescript
-useSync({
-  logger: true,
-  logLevel: "DEBUG", // "DEBUG" | "INFO" | "WARN" | "ERROR"
-  // ...other config
-});
-```
-
-### Window Event Triggers
-
+### 1. Sync Control
 ```typescript
 const fetchOrders = [{
   key: "users",
-  action: setUsers,
-  triggerEvents: ['scroll', 'resize', 'storage'] // Only window events are supported
+  initialSync: false,     // Skip initial fetch
+  backgroundSync: true,   // Fetch in background
+  // ...other options
 }];
-
-// Data will be automatically refetched on these window events
 ```
 
-### Available Window Events
-Common events you can use:
-- `scroll` - Window scroll
+### 2. URL Parameters
+```typescript
+const order = {
+  options: {
+    params: {
+      limit: 10,
+      offset: 0,
+      sort: 'desc'
+    }
+  }
+};
+// Results in: /api/users?limit=10&offset=0&sort=desc
+```
+
+### 3. Window Event Triggers
+```typescript
+const order = {
+  triggerEvents: ['scroll', 'resize', 'visibilitychange']
+};
+```
+
+Available Window Events:
+- `scroll` - Page scroll
 - `resize` - Window resize
+- `online`/`offline` - Network status
+- `focus`/`blur` - Window focus
+- `visibilitychange` - Tab visibility
 - `storage` - LocalStorage changes
-- `offline` - Browser goes offline
-- `online` - Browser goes online
-- `focus` - Window gains focus
-- `blur` - Window loses focus
-- `visibilitychange` - Tab visibility changes
-- `beforeunload` - Before window unload
-- `load` - Window load complete
-- `DOMContentLoaded` - Initial HTML loaded
-- `popstate` - Browser history changes
+- `popstate` - History changes
+- `load`/`beforeunload` - Page lifecycle
 
-### Manual Sync with Progress Tracking
+### 4. Cache Management
+```typescript
+// In component
+const { clearCache } = useSync(config);
+clearCache('users');     // Clear specific cache
+clearCache();           // Clear all cache
 
+// Anywhere in app
+import { clearCache } from '@sirajju/use-sync';
+clearCache('products');
+```
+
+### 5. Manual Sync
 ```typescript
 import { syncIndividual } from "@sirajju/use-sync";
 
-function RefreshButton() {
-  const handleRefresh = async () => {
-    try {
-      const data = await syncIndividual("users");
-      console.log("Refresh complete:", data);
-    } catch (error) {
-      console.error("Refresh failed:", error);
-    }
-  };
+// Basic sync
+const data = await syncIndividual('users');
 
-  return <button onClick={handleRefresh}>Refresh</button>;
-}
+// With options
+const data = await syncIndividual('users', {
+  params: { page: 2 },
+  headers: { 'Cache-Control': 'no-cache' }
+});
 ```
 
-## API Reference
+## 📚 API Reference
 
 ### useSync Hook
-
 ```typescript
 interface useSyncProps {
-  fetchItems: Map<string, string>;    // API endpoints
-  fetchOrder: order[];                // Sync configurations
-  throwError?: boolean;               // Error handling mode
-  onError?: (error: any) => void;     // Error callback
-  logger?: boolean;                   // Enable logging
+  fetchItems: Map<string, string>;
+  fetchOrder: order[];
+  throwError?: boolean;
+  onError?: (error: any) => void;
+  logger?: boolean;
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
-  cacheDuration?: number;             // Cache duration in ms
-}
-
-interface SyncResult {
-  isPending: boolean;                 // Global loading state
-  haveError: boolean;                 // Error state
-  loadingItems: string[];            // Currently loading items
-  clearCache: (key?: string) => void; // Cache control
-  refresh: () => Promise<void>;       // Manual refresh
+  cacheDuration?: number;
 }
 ```
 
 ### Order Configuration
-
 ```typescript
-type order = {
-  key: string;                     // Unique identifier
-  action: (data: any) => any;      // Redux action creator
-  refetchOnFocus?: boolean;        // Refetch on window focus
-  refetchOnline?: boolean;         // Refetch when online
-  triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
-  options?: RequestInit;           // Fetch options
+interface order {
+  key: string;
+  action: (data: any) => any;
+  refetchOnFocus?: boolean;
+  refetchOnline?: boolean;
+  initialSync?: boolean;
+  backgroundSync?: boolean;
+  triggerEvents?: (keyof WindowEventMap)[];
+  options?: {
+    params?: Record<string, any>;
+    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    headers?: HeadersInit;
+    body?: string | FormData | URLSearchParams;
+    // ...other fetch options
+  };
+}
+```
+
+## 🔧 Advanced Usage
+
+### Background Sync
+```typescript
+const order = {
+  key: "analytics",
+  backgroundSync: true,  // Won't block initial load
+  action: setAnalytics
 };
 ```
 
-## TypeScript Type Definitions
-
-```typescript
-// Core types
-type SyncKey = string;
-type EndpointURL = string;
-type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
-
-// Configuration interfaces
-interface SyncConfig {
-  fetchItems: Map<SyncKey, EndpointURL>;
-  fetchOrder: SyncOrder[];
-  throwError?: boolean;
-  onError?: ErrorCallback;
-  logger?: boolean;
-  logLevel?: LogLevel;
-  cacheDuration?: number;
-}
-
-interface SyncOrder {
-  key: SyncKey;
-  action: ActionCreator;
-  refetchOnFocus?: boolean;
-  refetchOnline?: boolean;
-  triggerEvents?: WindowEventName[];
-  options?: RequestInit;
-}
-
-// Result types
-interface SyncResult {
-  isPending: boolean;
-  haveError: boolean;
-  loadingItems: SyncKey[];
-  clearCache: (key?: SyncKey) => void;
-  refresh: () => Promise<void>;
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Cache Not Clearing**
-   ```typescript
-   // Make sure to use the correct key
-   clearCache("exact-key-name");
-   ```
-
-2. **Event Triggers Not Working**
-   ```typescript
-   // Only use valid window events
-   triggerEvents: ['scroll', 'resize'] // ✅ Correct
-   triggerEvents: ['custom-event']     // ❌ Incorrect
-   ```
-
-3. **Redux Integration**
-   ```typescript
-   // Ensure your action creator is properly typed
-   const action: ActionCreator = (data) => ({
-     type: 'SET_DATA',
-     payload: data
-   });
-   ```
-
-### Debug Mode
-
-Enable detailed logging for troubleshooting:
-
+### Error Handling
 ```typescript
 useSync({
-  logger: true,
-  logLevel: "DEBUG",
-  // ...other config
+  throwError: true,     // Throw errors instead of console
+  onError: (error) => {
+    notifyUser(error);  // Custom error handling
+  },
+  // ...config
 });
 ```
 
-## Requirements
+### Debug Logging
+```typescript
+useSync({
+  logger: true,
+  logLevel: "DEBUG",    // "DEBUG" | "INFO" | "WARN" | "ERROR"
+  // ...config
+});
+```
+
+## 📦 Requirements
 
 - React 16.8+
-- Redux 4.x
-- React Redux 7.x
-- TypeScript 4.x (for TypeScript users)
+- Redux
+- React Redux
 
-## License
+## 📄 License
 
-ISC License
+ISC
