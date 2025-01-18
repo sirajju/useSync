@@ -43,6 +43,5 @@ module.exports = {
   externals: {
     'react': 'react',
     'react-redux': 'react-redux',
-    'tslib': 'tslib'
   }
 };

@@ -17,7 +17,6 @@
     "newLine": "lf",
     "sourceMap": false,
     "noEmitHelpers": false,
-    "importHelpers": true,
     "downlevelIteration": true,
     "moduleResolution": "node"
   },
