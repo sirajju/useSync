@@ -441,7 +441,11 @@ const syncIndividual = async (
 
     const requestOptions = { ...config.options, ...options };
 
-    const response = await fetch(url, requestOptions);
+    const requestUrl = requestOptions.params
+      ? ObjectIntoUrlParameters(url, requestOptions.params)
+      : url;
+
+    const response = await fetch(requestUrl, requestOptions);
     if (!response.ok) {
       logger(`Individual sync failed for ${name}`, "ERROR", {
         status: response.status,
