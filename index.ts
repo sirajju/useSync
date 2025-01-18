@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useDispatch } from "react-redux";
-import { order } from "./types";
+import { order, fetchOptions } from "./types";
 
 let orders: order[] = [];
 let items: Map<string, string> = new Map();
@@ -61,7 +61,7 @@ const logger = (
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] %c${level.toUpperCase()}%c: ${message}`;
 
-  if (options.logger) return options.logger(logMessage);
+  if (options.logger) return options.logger(message);
   if (details) {
     (console[level.toLowerCase() as keyof Console] as Function)(
       logMessage,
@@ -152,15 +152,15 @@ const useSync = ({
   myDispatch = dispatch;
 
   const handleSync = useCallback(
-    async (key: string) => {
-      await syncIndividual(key, dispatch);
+    async (key: string, options: fetchOptions = {}) => {
+      await syncIndividual(key, options, dispatch);
     },
     [dispatch]
   );
 
   // Memoize fetchWithCache to prevent recreations
   const fetchWithCache = useCallback(async (config: order, url: string) => {
-    setLoadingItems((prev) => new Set([...prev, config.key]));
+    setLoadingItems((prev) => new Set([...Array.from(prev), config.key]));
 
     try {
       const cacheKey = `${config.key}-${url}`;
@@ -218,11 +218,6 @@ const useSync = ({
 
       return requestPromise;
     } finally {
-      setLoadingItems((prev) => {
-        const next = new Set(prev);
-        next.delete(config.key);
-        return next;
-      });
     }
   }, []);
 
@@ -293,10 +288,16 @@ const useSync = ({
           if (
             typeof config.backgroundSync == "boolean" &&
             config.backgroundSync
-          )
+          ) {
+            setLoadingItems((prev) => {
+              const next = new Set(prev);
+              next.delete(config.key);
+              return next;
+            });
             return backgroundSyncs.set(config.key, () =>
               handleSync(config.key)
             );
+          }
 
           if (pendingItemsRef.current.includes(config.key)) {
             logger(`Skipping ${config.key} - already pending`, "WARN");
@@ -313,6 +314,12 @@ const useSync = ({
 
           try {
             const data = await fetchWithCache(config, url);
+
+            setLoadingItems((prev) => {
+              const next = new Set(prev);
+              next.delete(config.key);
+              return next;
+            });
 
             if (mountedRef.current) {
               dispatch(config.action(data));
@@ -331,6 +338,11 @@ const useSync = ({
 
       if (mountedRef.current) {
         setSyncState({ isPending: false, haveError: false });
+        const backgroundSyncEntries = Array.from(backgroundSyncs.entries());
+        for (const [key, callback] of backgroundSyncEntries) {
+          callback();
+          backgroundSyncs.delete(key);
+        }
       }
 
       // Return cleanup function for event listeners
@@ -354,11 +366,6 @@ const useSync = ({
       logger("Sync process failed", "ERROR", { error });
       if (configRef.current.onError) configRef.current.onError(error);
     } finally {
-      const backgroundSyncEntries = Array.from(backgroundSyncs.entries());
-      for (const [key, callback] of backgroundSyncEntries) {
-        callback();
-        backgroundSyncs.delete(key);
-      }
     }
   }, [dispatch, fetchWithCache, handleSync]);
 
@@ -386,6 +393,7 @@ let isFetchPendingForSameItem: string[] = [];
 // Update syncIndividual to use cache
 const syncIndividual = async (
   name: string,
+  options: fetchOptions = {},
   dispatch: (action: any) => void = myDispatch
 ) => {
   const cacheKey = `individual-${name}`;
@@ -411,7 +419,9 @@ const syncIndividual = async (
       return throwErrorNow(`no url found for item ${name}`);
     }
 
-    const response = await fetch(url, config.options || {});
+    const requestOptions = { ...config.options, ...options };
+
+    const response = await fetch(url, requestOptions);
     if (!response.ok) {
       logger(`Individual sync failed for ${name}`, "ERROR", {
         status: response.status,
@@ -426,7 +436,11 @@ const syncIndividual = async (
     });
     dispatch(config.action(data));
     return data;
-  } finally {
+  } 
+ catch(error) {
+  logger(`Individual sync error : ${error}`,"ERROR")
+ }  
+  finally {
     isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
       (el) => el !== name
     );
