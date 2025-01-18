@@ -32,7 +32,8 @@
     "build": "webpack",
     "build:types": "tsc --emitDeclarationOnly --declaration",
     "build:all": "npm run build && npm run build:types",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "publish": "npm run build:all && npm publish"
   },
   "dependencies": {
     "react": "^19.0.0",
