@@ -441,9 +441,13 @@ const syncIndividual = async (
 
     const requestOptions = { ...config.options, ...options };
 
-    const requestUrl = requestOptions.params
-      ? ObjectIntoUrlParameters(url, requestOptions.params)
+    const requestUrlWithPath = requestOptions.path
+      ? `${url}${requestOptions.path}`
       : url;
+
+    const requestUrl = requestOptions.params
+      ? ObjectIntoUrlParameters(requestUrlWithPath, requestOptions.params)
+      : requestUrlWithPath;
 
     const response = await fetch(requestUrl, requestOptions);
     if (!response.ok) {

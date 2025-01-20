@@ -10,6 +10,7 @@ export type order = {
 };
 export interface fetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    path?: string;
     params?: Record<string, any>;
     headers?: HeadersInit;
     body?: string | FormData | URLSearchParams;
