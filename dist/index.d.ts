@@ -23,5 +23,5 @@ declare const useSync: ({ fetchOrder, fetchItems, throwError, cacheDuration, log
     refresh: () => Promise<(() => void) | undefined>;
     loadingItems: string[];
 };
-declare const syncIndividual: (name: string, options?: fetchOptions, dispatch?: (action: any) => void) => Promise<any>;
+declare const syncIndividual: (name: string, options?: fetchOptions, customAction?: (data: any) => any, dispatch?: (action: any) => void) => Promise<any>;
 export { useSync, syncIndividual, clearCache };

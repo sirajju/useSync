@@ -255,7 +255,6 @@ const useSync = ({
       const currentFetchOrder = configRef.current.fetchOrder;
       const currentFetchItems = configRef.current.fetchItems;
 
-      // Collect all event triggers first
       currentFetchOrder.forEach((config) => {
         if (config.refetchOnline) refetchOnline.push(config.key);
         if (config.refetchOnFocus) refetchOnFocus.push(config.key);
@@ -270,7 +269,6 @@ const useSync = ({
         }
       });
 
-      // Setup event listeners
       const onlineHandler = () => {
         logger("Online event triggered", "DEBUG");
         refetchOnline.forEach((key) => handleSync(key));
@@ -284,7 +282,6 @@ const useSync = ({
       window.addEventListener("online", onlineHandler);
       window.addEventListener("focus", focusHandler);
 
-      // Setup window event listeners
       const eventHandlers = new Map<string, () => void>();
       triggerEvents.forEach(({ key, events }) => {
         events.forEach((event) => {
@@ -293,14 +290,12 @@ const useSync = ({
             handleSync(key);
           };
           eventHandlers.set(`${key}-${event}`, handler);
-          // Only add window events
           if (typeof window !== "undefined") {
             window.addEventListener(event, handler);
           }
         });
       });
 
-      // Execute fetches
       const promises = currentFetchOrder
         .map(async (config) => {
           if (typeof config.initialSync == "boolean" && !config.initialSync)
@@ -365,7 +360,6 @@ const useSync = ({
         }
       }
 
-      // Return cleanup function for event listeners
       return () => {
         logger("Cleaning up event listeners", "DEBUG");
         window.removeEventListener("online", onlineHandler);
@@ -410,10 +404,10 @@ const useSync = ({
 
 let isFetchPendingForSameItem: string[] = [];
 
-// Update syncIndividual to use cache
 const syncIndividual = async (
   name: string,
   options: fetchOptions = {},
+  customAction?: (data: any) => any,
   dispatch: (action: any) => void = myDispatch
 ) => {
   const cacheKey = `individual-${name}`;
@@ -451,21 +445,24 @@ const syncIndividual = async (
 
     const response = await fetch(requestUrl, requestOptions);
     if (!response.ok) {
-      logger(`Individual sync failed for ${name}`, "ERROR", {
+      logger(`Sync failed for ${name}`, "ERROR", {
         status: response.status,
         statusText: response.statusText,
       });
       throw new Error(`Failed to fetch ${name} ${response.statusText}`);
     }
+    let data = null;
+    if (!config.transformResponse) data = await response.json();
+    else data = await config.transformResponse(response);
 
-    const data = await response.json();
     logger(`Individual sync successful for ${name}`, "INFO", {
       dataSize: JSON.stringify(data).length,
     });
-    dispatch(config.action(data));
+    if (typeof customAction == "function") dispatch(customAction(data));
+    else dispatch(config.action(data));
     return data;
   } catch (error) {
-    logger(`Individual sync error : ${error}`, "ERROR");
+    logger(`Sync error : ${error}`, "ERROR");
   } finally {
     isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
       (el) => el !== name

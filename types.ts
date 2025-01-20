@@ -1,6 +1,7 @@
 export type order = {
   key: string;
   action: (arg: any) => any;
+  transformResponse?: (response: any) => any;
   refetchOnFocus?: boolean;
   refetchOnline?: boolean;
   initialSync?: boolean;
