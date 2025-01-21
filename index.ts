@@ -18,7 +18,7 @@ interface useSyncProps {
   throwError?: boolean;
   onError?: (error: any) => void;
   log?: boolean;
-  logger?: (message: any) => void;
+  logger?: (level: keyof typeof LogLevel, message: string) => void;
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
 }
@@ -61,7 +61,7 @@ const logger = (
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] %c${level.toUpperCase()}%c: ${message}`;
 
-  if (options.logger) return options.logger(message);
+  if (options.logger) return options.logger(level, message);
   if (details) {
     (console[level.toLowerCase() as keyof Console] as Function)(
       logMessage,
@@ -169,7 +169,7 @@ const useSync = ({
 
   const handleSync = useCallback(
     async (key: string, options: fetchOptions = {}) => {
-      await syncIndividual(key, options, dispatch);
+      await syncIndividual(key, options, null, dispatch);
     },
     [dispatch]
   );
@@ -407,7 +407,7 @@ let isFetchPendingForSameItem: string[] = [];
 const syncIndividual = async (
   name: string,
   options: fetchOptions = {},
-  customAction?: (data: any) => any,
+  customAction?: null | ((data: any) => any),
   dispatch: (action: any) => void = myDispatch
 ) => {
   const cacheKey = `individual-${name}`;

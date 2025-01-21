@@ -11,7 +11,7 @@ interface useSyncProps {
     throwError?: boolean;
     onError?: (error: any) => void;
     log?: boolean;
-    logger?: (message: any) => void;
+    logger?: (level: keyof typeof LogLevel, message: string) => void;
     cacheDuration?: number;
     logLevel?: keyof typeof LogLevel;
 }
@@ -23,5 +23,5 @@ declare const useSync: ({ fetchOrder, fetchItems, throwError, cacheDuration, log
     refresh: () => Promise<(() => void) | undefined>;
     loadingItems: string[];
 };
-declare const syncIndividual: (name: string, options?: fetchOptions, customAction?: (data: any) => any, dispatch?: (action: any) => void) => Promise<any>;
+declare const syncIndividual: (name: string, options?: fetchOptions, customAction?: null | ((data: any) => any), dispatch?: (action: any) => void) => Promise<any>;
 export { useSync, syncIndividual, clearCache };
