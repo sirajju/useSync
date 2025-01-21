@@ -130,7 +130,6 @@ const useSync = ({
   logLevel = "DEBUG", // Add default log level
   ...rest
 }: useSyncProps) => {
-  const isFirstRender = useRef(true);
   const mountedRef = useRef(false);
   const configRef = useRef({
     fetchOrder,
@@ -298,6 +297,13 @@ const useSync = ({
 
       const promises = currentFetchOrder
         .map(async (config) => {
+          if(typeof config.includedPaths === "object" && Array.isArray(config.includedPaths)) {
+            const currentPath = window.location.pathname;
+            if(!config.includedPaths.includes(currentPath)) {
+              logger(`Skipping ${config.key} - not in included paths`, "WARN");
+              return;
+            }
+          }
           if (typeof config.initialSync == "boolean" && !config.initialSync)
             return;
           if (

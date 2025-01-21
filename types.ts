@@ -6,6 +6,7 @@ export type order = {
   refetchOnline?: boolean;
   initialSync?: boolean;
   backgroundSync?: boolean;
+  includedPaths?: string[]; // Paths to sync only
   triggerEvents?: (keyof WindowEventMap)[]; // Only window event names like 'scroll', 'resize'
   options?: fetchOptions;
 };
