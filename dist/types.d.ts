@@ -6,6 +6,7 @@ export type order = {
     refetchOnline?: boolean;
     initialSync?: boolean;
     backgroundSync?: boolean;
+    includedPaths?: string[];
     triggerEvents?: (keyof WindowEventMap)[];
     options?: fetchOptions;
 };
