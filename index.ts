@@ -130,6 +130,8 @@ const useSync = ({
   logLevel = "DEBUG", // Add default log level
   ...rest
 }: useSyncProps) => {
+  fetchOrder = fetchOrder.sort((a: order, b: order) => b.priority! - a.priority!);
+
   const mountedRef = useRef(false);
   const configRef = useRef({
     fetchOrder,
@@ -297,9 +299,12 @@ const useSync = ({
 
       const promises = currentFetchOrder
         .map(async (config) => {
-          if(typeof config.includedPaths === "object" && Array.isArray(config.includedPaths)) {
+          if (
+            typeof config.includedPaths === "object" &&
+            Array.isArray(config.includedPaths)
+          ) {
             const currentPath = window.location.pathname;
-            if(!config.includedPaths.includes(currentPath)) {
+            if (!config.includedPaths.includes(currentPath)) {
               logger(`Skipping ${config.key} - not in included paths`, "WARN");
               return;
             }

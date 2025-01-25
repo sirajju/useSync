@@ -9,6 +9,7 @@ export type order = {
   includedPaths?: string[]; // Paths to sync only
   triggerEvents?: (keyof WindowEventMap)[]; // Only window event names like 'scroll', 'resize'
   options?: fetchOptions;
+  priority?: number;
 };
 
 export interface fetchOptions {

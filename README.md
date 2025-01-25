@@ -20,6 +20,8 @@ function App() {
     {
       key: "users",
       action: setUsers,
+      priority: 1, // Higher priority items fetch first
+      includedPaths: ['/dashboard', '/admin'], // Only sync on these paths
       transformResponse: async (response) => {
         const data = await response.json();
         return data.items; // Transform response before dispatch
@@ -98,7 +100,34 @@ Available Window Events:
 - `popstate` - History changes
 - `load`/`beforeunload` - Page lifecycle
 
-### 4. Response Transformation
+### 4. Priority and Path-based Syncing
+
+```typescript
+const fetchOrders = [
+  {
+    key: "critical-data",
+    priority: 2, // Highest priority
+    action: setCriticalData
+  },
+  {
+    key: "user-preferences",
+    priority: 1,
+    includedPaths: ['/settings', '/profile'],
+    action: setPreferences
+  },
+  {
+    key: "analytics",
+    priority: 0, // Lowest priority
+    includedPaths: ['/dashboard'],
+    action: setAnalytics
+  }
+];
+
+// Items will sync in order: critical-data -> user-preferences -> analytics
+// user-preferences only syncs on /settings and /profile routes
+```
+
+### 5. Response Transformation
 
 ```typescript
 const order = {
@@ -109,7 +138,7 @@ const order = {
 };
 ```
 
-### 5. URL Path and Parameters
+### 6. URL Path and Parameters
 
 ```typescript
 const order = {
@@ -124,7 +153,7 @@ const order = {
 // Final URL: baseUrl/active?limit=10&offset=0
 ```
 
-### 6. Manual Sync with Custom Action
+### 7. Manual Sync with Custom Action
 
 ```typescript
 import { syncIndividual } from "@sirajju/use-sync";
@@ -143,7 +172,7 @@ const data = await syncIndividual("users", {
 });
 ```
 
-### 7. Cache Management
+### 8. Cache Management
 
 ```typescript
 // In component
@@ -191,6 +220,8 @@ interface order {
     headers?: HeadersInit;
     // ...other fetch options
   };
+  priority?: number;              // Higher number = higher priority
+  includedPaths?: string[];      // Array of paths where sync is allowed
 }
 ```
 
@@ -236,6 +267,33 @@ useSync({
   logLevel: "DEBUG", // "DEBUG" | "INFO" | "WARN" | "ERROR"
   // ...config
 });
+```
+
+### Priority-based Syncing
+```typescript
+const orders = [
+  {
+    key: "auth",
+    priority: 100,    // Will sync first
+    action: setAuth
+  },
+  {
+    key: "settings",
+    priority: 50,     // Will sync second
+    action: setSettings
+  }
+];
+```
+
+### Path-restricted Syncing
+```typescript
+const order = {
+  key: "adminData",
+  includedPaths: ['/admin', '/dashboard'],  // Only sync on these paths
+  action: setAdminData
+};
+
+// No sync will occur on other paths like /home, /profile, etc.
 ```
 
 ## 📦 Requirements

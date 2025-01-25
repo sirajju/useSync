@@ -9,6 +9,7 @@ export type order = {
     includedPaths?: string[];
     triggerEvents?: (keyof WindowEventMap)[];
     options?: fetchOptions;
+    priority?: number;
 };
 export interface fetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
