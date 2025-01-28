@@ -130,7 +130,9 @@ const useSync = ({
   logLevel = "DEBUG", // Add default log level
   ...rest
 }: useSyncProps) => {
-  fetchOrder = fetchOrder.sort((a: order, b: order) => b.priority! - a.priority!);
+  fetchOrder = fetchOrder.sort(
+    (a: order, b: order) => b.priority! - a.priority!
+  );
 
   const mountedRef = useRef(false);
   const configRef = useRef({
@@ -325,7 +327,11 @@ const useSync = ({
             );
           }
 
-          if (pendingItemsRef.current.includes(config.key)) {
+          if (
+            pendingItemsRef.current.includes(
+              `${config.key}_${config.options?.path}`
+            )
+          ) {
             logger(`Skipping ${config.key} - already pending`, "WARN");
             return;
           }
@@ -336,7 +342,10 @@ const useSync = ({
             return throwErrorNow(`url not found for ${config.key}`);
           }
 
-          pendingItemsRef.current = [...pendingItemsRef.current, config.key];
+          pendingItemsRef.current = [
+            ...pendingItemsRef.current,
+            `${config.key}_${config.options?.path}`,
+          ];
 
           try {
             const data = await fetchWithCache(config, url);
@@ -353,7 +362,7 @@ const useSync = ({
           } finally {
             if (mountedRef.current) {
               pendingItemsRef.current = pendingItemsRef.current.filter(
-                (item) => item !== config.key
+                (item) => item !== `${config.key}_${config.options?.path}`
               );
             }
           }
@@ -428,13 +437,13 @@ const syncIndividual = async (
     return;
   }
 
-  if (isFetchPendingForSameItem.includes(name)) {
+  if (isFetchPendingForSameItem.includes(`${name}_${options.path}`)) {
     logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
     return;
   }
 
   logger(`Starting individual sync for ${name}`, "INFO");
-  isFetchPendingForSameItem.push(name);
+  isFetchPendingForSameItem.push(`${name}_${options.path}`);
 
   try {
     const config = orders.find((item) => item.key === name);
