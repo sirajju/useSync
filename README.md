@@ -53,247 +53,115 @@ function App() {
 
 ## 🎯 Key Features
 
-### 1. Sync Control
-
+### 1. Intelligent Caching
 ```typescript
-const fetchOrders = [
-  {
-    key: "users",
-    initialSync: false, // Skip initial fetch
-    backgroundSync: true, // Fetch in background
-    // ...other options
-  },
-];
+const { clearCache } = useSync({
+  fetchItems: endpoints,
+  fetchOrder: orders,
+  cacheDuration: 5000 // Cache duration in milliseconds
+});
+
+// Clear specific or all cache
+clearCache("users"); // Clear specific endpoint
+clearCache(); // Clear all cache
 ```
 
-### 2. URL Parameters
-
+### 2. Smart Request Handling
 ```typescript
 const order = {
-  options: {
-    params: {
-      limit: 10,
-      offset: 0,
-      sort: "desc",
-    },
-  },
-};
-// Results in: /api/users?limit=10&offset=0&sort=desc
-```
-
-### 3. Window Event Triggers
-
-```typescript
-const order = {
-  triggerEvents: ["scroll", "resize", "visibilitychange"],
+  key: "users",
+  backgroundSync: true, // Non-blocking sync
+  initialSync: false, // Skip initial fetch
+  refetchOnFocus: true, // Refetch when window focused
+  refetchOnline: true // Refetch when back online
 };
 ```
 
-Available Window Events:
-
-- `scroll` - Page scroll
-- `resize` - Window resize
-- `online`/`offline` - Network status
-- `focus`/`blur` - Window focus
-- `visibilitychange` - Tab visibility
-- `storage` - LocalStorage changes
-- `popstate` - History changes
-- `load`/`beforeunload` - Page lifecycle
-
-### 4. Priority and Path-based Syncing
-
+### 3. Path-Based Syncing
 ```typescript
-const fetchOrders = [
-  {
-    key: "critical-data",
-    priority: 2, // Highest priority
-    action: setCriticalData
-  },
-  {
-    key: "user-preferences",
-    priority: 1,
-    includedPaths: ['/settings', '/profile'],
-    action: setPreferences
-  },
-  {
-    key: "analytics",
-    priority: 0, // Lowest priority
-    includedPaths: ['/dashboard'],
-    action: setAnalytics
+const order = {
+  key: "admin-data",
+  includedPaths: ['/admin', '/dashboard'], // Only sync on these paths
+  priority: 2 // Higher priority = earlier fetch
+};
+```
+
+### 4. Advanced Logging
+```typescript
+const config = {
+  log: true, // Enable logging
+  logLevel: "DEBUG", // DEBUG | INFO | WARN | ERROR
+  logger: (level, message) => {
+    customLogger.log(level, message); // Optional custom logger
   }
-];
-
-// Items will sync in order: critical-data -> user-preferences -> analytics
-// user-preferences only syncs on /settings and /profile routes
+};
 ```
 
 ### 5. Response Transformation
-
 ```typescript
 const order = {
   transformResponse: async (response) => {
-    const data = await response.text();
-    return JSON.parse(data).results;
-  },
+    const data = await response.json();
+    return data.items; // Transform before dispatch
+  }
 };
-```
-
-### 6. URL Path and Parameters
-
-```typescript
-const order = {
-  options: {
-    path: "/active", // Results in: baseUrl/active
-    params: {
-      limit: 10,
-      offset: 0,
-    },
-  },
-};
-// Final URL: baseUrl/active?limit=10&offset=0
-```
-
-### 7. Manual Sync with Custom Action
-
-```typescript
-import { syncIndividual } from "@sirajju/use-sync";
-
-// With custom action
-const data = await syncIndividual(
-  "users",
-  { path: "/archived" },
-  customAction // Custom redux action instead of default
-);
-
-// Basic options
-const data = await syncIndividual("users", {
-  path: "/active",
-  params: { status: "online" },
-});
-```
-
-### 8. Cache Management
-
-```typescript
-// In component
-const { clearCache } = useSync(config);
-clearCache("users"); // Clear specific cache
-clearCache(); // Clear all cache
-
-// Anywhere in app
-import { clearCache } from "@sirajju/use-sync";
-clearCache("products");
 ```
 
 ## 📚 API Reference
 
-### useSync Hook
+### Types
+```typescript
+interface order {
+  key: string;                                           // Unique identifier for the request
+  action: (data: any) => any;                           // Redux action to dispatch
+  priority?: number;                                     // Higher number = higher priority
+  includedPaths?: string[];                             // Paths where sync is allowed
+  transformResponse?: (response: Response) => Promise<any>; // Transform response before dispatch
+  refetchOnFocus?: boolean;                             // Refetch when window gains focus
+  refetchOnline?: boolean;                              // Refetch when connection restored
+  initialSync?: boolean;                                // Whether to sync on mount
+  backgroundSync?: boolean;                             // Non-blocking background sync
+  triggerEvents?: (keyof WindowEventMap)[];             // Window events that trigger sync
+  options?: {
+    path?: string;                                      // Append to base URL
+    params?: Record<string, any>;                       // URL query parameters
+    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+    headers?: HeadersInit;
+    body?: any;
+  };
+}
 
+interface fetchOptions {
+  path?: string;
+  params?: Record<string, any>;
+  method?: string;
+  headers?: HeadersInit;
+  body?: any;
+}
+```
+
+### useSync Hook
 ```typescript
 interface useSyncProps {
   fetchItems: Map<string, string>;
   fetchOrder: order[];
   throwError?: boolean;
   onError?: (error: any) => void;
-  logger?: boolean;
-  logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  log?: boolean;
+  logger?: (level: "DEBUG" | "INFO" | "WARN" | "ERROR", message: string) => void;
   cacheDuration?: number;
-}
-```
-
-### Order Configuration
-
-```typescript
-interface order {
-  key: string;
-  action: (data: any) => any;
-  transformResponse?: (response: Response) => Promise<any>;
-  refetchOnFocus?: boolean;
-  refetchOnline?: boolean;
-  initialSync?: boolean;
-  backgroundSync?: boolean;
-  triggerEvents?: (keyof WindowEventMap)[];
-  options?: {
-    path?: string;
-    params?: Record<string, any>;
-    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-    headers?: HeadersInit;
-    // ...other fetch options
-  };
-  priority?: number;              // Higher number = higher priority
-  includedPaths?: string[];      // Array of paths where sync is allowed
+  logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
 }
 ```
 
 ### syncIndividual Function
-
 ```typescript
 function syncIndividual(
-  name: string,
+  name: string, 
   options?: fetchOptions,
-  customAction?: (data: any) => any
+  customAction?: (data: any) => any,
+  dispatch?: (action: any) => void
 ): Promise<any>;
-```
-
-## 🔧 Advanced Usage
-
-### Background Sync
-
-```typescript
-const order = {
-  key: "analytics",
-  backgroundSync: true, // Won't block initial load
-  action: setAnalytics,
-};
-```
-
-### Error Handling
-
-```typescript
-useSync({
-  throwError: true, // Throw errors instead of console
-  onError: (error) => {
-    notifyUser(error); // Custom error handling
-  },
-  // ...config
-});
-```
-
-### Debug Logging
-
-```typescript
-useSync({
-  logger: true,
-  logLevel: "DEBUG", // "DEBUG" | "INFO" | "WARN" | "ERROR"
-  // ...config
-});
-```
-
-### Priority-based Syncing
-```typescript
-const orders = [
-  {
-    key: "auth",
-    priority: 100,    // Will sync first
-    action: setAuth
-  },
-  {
-    key: "settings",
-    priority: 50,     // Will sync second
-    action: setSettings
-  }
-];
-```
-
-### Path-restricted Syncing
-```typescript
-const order = {
-  key: "adminData",
-  includedPaths: ['/admin', '/dashboard'],  // Only sync on these paths
-  action: setAdminData
-};
-
-// No sync will occur on other paths like /home, /profile, etc.
 ```
 
 ## 📦 Requirements
@@ -304,4 +172,4 @@ const order = {
 
 ## 📄 License
 
-ISC
+This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE.txt) file for details.

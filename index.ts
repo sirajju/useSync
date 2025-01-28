@@ -485,7 +485,7 @@ const syncIndividual = async (
     logger(`Sync error : ${error}`, "ERROR");
   } finally {
     isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
-      (el) => el !== name
+      (el) => el !== `${name}_${options.path}`
     );
     logger(`Completed individual sync for ${name}`, "DEBUG");
   }
