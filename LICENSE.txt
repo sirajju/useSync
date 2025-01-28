@@ -34,4 +34,4 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 For the full license text, visit:  
 https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt  
 
-                     END OF TERMS AND CONDITIONS
+                     END OF TERMS AND CONDITIONS 
