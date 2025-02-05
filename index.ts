@@ -21,6 +21,7 @@ interface useSyncProps {
   logger?: (level: keyof typeof LogLevel, message: string) => void;
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
+  waiting?: boolean;
 }
 let options: useSyncProps;
 
@@ -122,6 +123,8 @@ const ObjectIntoUrlParameters = (url: string, object: Record<string, any>) => {
   return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
 };
 
+let isInitialSyncCompleted = false;
+
 const useSync = ({
   fetchOrder,
   fetchItems,
@@ -163,6 +166,7 @@ const useSync = ({
       ...prev,
       isPending: loadingItems.size > 0,
     }));
+    isInitialSyncCompleted = loadingItems.size == 0;
   }, [loadingItems]);
 
   // Use ref for pending items to avoid re-renders
@@ -245,6 +249,7 @@ const useSync = ({
   }, []);
 
   const syncData = useCallback(async () => {
+    isInitialSyncCompleted = false;
     if (!mountedRef.current) return;
 
     try {
@@ -397,6 +402,8 @@ const useSync = ({
       };
     } catch (error) {
       setSyncState((prev) => ({ ...prev, haveError: true }));
+
+      isInitialSyncCompleted = true;
       logger("Sync process failed", "ERROR", { error });
       if (configRef.current.onError) configRef.current.onError(error);
     } finally {
@@ -424,12 +431,27 @@ const useSync = ({
 
 let isFetchPendingForSameItem: string[] = [];
 
+const waitForCompletingInitialSync = async () => {
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (isInitialSyncCompleted) {
+        clearInterval(interval);
+        resolve(true);
+      }
+    }, 100);
+  });
+};
+
 const syncIndividual = async (
   name: string,
-  options: fetchOptions = {},
+  fetchOptions: fetchOptions = {},
   customAction?: null | ((data: any) => any),
   dispatch: (action: any) => void = myDispatch
 ) => {
+  if (!isInitialSyncCompleted && options.waiting) {
+    logger(`${name} Waiting for initial sync to complete`, "DEBUG");
+    await waitForCompletingInitialSync();
+  }
   const cacheKey = `individual-${name}`;
 
   if (pendingRequests.get(cacheKey)) {
@@ -437,13 +459,13 @@ const syncIndividual = async (
     return;
   }
 
-  if (isFetchPendingForSameItem.includes(`${name}_${options.path}`)) {
+  if (isFetchPendingForSameItem.includes(`${name}_${fetchOptions.path}`)) {
     logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
     return;
   }
 
   logger(`Starting individual sync for ${name}`, "INFO");
-  isFetchPendingForSameItem.push(`${name}_${options.path}`);
+  isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
 
   try {
     const config = orders.find((item) => item.key === name);
@@ -453,7 +475,7 @@ const syncIndividual = async (
       return throwErrorNow(`no url found for item ${name}`);
     }
 
-    const requestOptions = { ...config.options, ...options };
+    const requestOptions = { ...config.options, ...fetchOptions };
 
     const requestUrlWithPath = requestOptions.path
       ? `${url}${requestOptions.path}`
@@ -485,7 +507,7 @@ const syncIndividual = async (
     logger(`Sync error : ${error}`, "ERROR");
   } finally {
     isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
-      (el) => el !== `${name}_${options.path}`
+      (el) => el !== `${name}_${fetchOptions.path}`
     );
     logger(`Completed individual sync for ${name}`, "DEBUG");
   }

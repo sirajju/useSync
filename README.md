@@ -45,6 +45,7 @@ function App() {
     logger: true,
     logLevel: "DEBUG",
     cacheDuration: 5000,
+    waiting: true // Wait for initial sync before individual calls
   });
 
   return isPending ? <Loading /> : <UserList />;
@@ -107,6 +108,21 @@ const order = {
 };
 ```
 
+### 6. Synchronized Individual Calls
+```typescript
+// With waiting: true, this will wait for initial sync to complete
+const data = await syncIndividual('users', {
+  path: '/active',
+  params: { status: 'online' }
+});
+
+// Configure sync behavior
+const config = {
+  waiting: true, // Makes syncIndividual wait for initial sync
+  // ...other config options
+};
+```
+
 ## 📚 API Reference
 
 ### Types
@@ -151,8 +167,19 @@ interface useSyncProps {
   logger?: (level: "DEBUG" | "INFO" | "WARN" | "ERROR", message: string) => void;
   cacheDuration?: number;
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
+  waiting?: boolean;    // Wait for initial sync before individual calls
 }
 ```
+
+### Sync Behavior
+- When `waiting: true`
+  - `syncIndividual` calls wait for initial sync to complete
+  - Prevents race conditions with initial data loading
+  - Ensures consistent state management
+- When `waiting: false` (default)
+  - `syncIndividual` calls execute immediately
+  - May run in parallel with initial sync
+  - Useful for independent data fetching
 
 ### syncIndividual Function
 ```typescript
