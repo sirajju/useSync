@@ -52,6 +52,28 @@ function App() {
 }
 ```
 
+## 🎯 New Features & Improvements
+
+### Request History
+```typescript
+import { getHistory } from '@sirajju/use-sync';
+
+// Get all recent requests with timing and response data
+const requests = getHistory();
+/*
+[{
+  url: string,
+  timestamp: number,
+  path: string,
+  params: Record<string, any>,
+  options: fetchOptions,
+  recieveTime?: number,
+  response?: Response,
+  headers: any
+}]
+*/
+```
+
 ## 🎯 Key Features
 
 ### 1. Intelligent Caching

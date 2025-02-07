@@ -1,52 +1,40 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useDispatch } from "react-redux";
-import { order, fetchOptions } from "./types";
+import {
+  order,
+  fetchOptions,
+  LogLevel,
+  LogColors,
+  LogLevels,
+  useSyncProps,
+  CacheEntry,
+  RequestTracker,
+  RecentRequest,
+} from "./types";
 
+// Global state
 let orders: order[] = [];
 let items: Map<string, string> = new Map();
-
-enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3,
-}
-
-interface useSyncProps {
-  fetchItems: Map<string, string>;
-  fetchOrder: order[];
-  throwError?: boolean;
-  onError?: (error: any) => void;
-  log?: boolean;
-  logger?: (level: keyof typeof LogLevel, message: string) => void;
-  cacheDuration?: number;
-  logLevel?: keyof typeof LogLevel;
-  waiting?: boolean;
-}
 let options: useSyncProps;
+let myDispatch: any;
+let isInitialSyncCompleted = false;
+let isFetchPendingForSameItem: string[] = [];
+let CACHE_DURATION = 5 * 1000;
 
+// Global storage
+const cache = new Map<string, CacheEntry>();
+const pendingRequests = new Map<string, RequestTracker>();
+const backgroundSyncs = new Map<string, () => void>();
+let recentRequests: RecentRequest[] = [];
+
+// Helper functions
 const throwErrorNow = (message: string) => {
-  if (options && options.throwError) throw new Error(message);
+  if (options?.throwError) throw new Error(message);
   else console.error(message);
 };
 
-const LogColors = {
-  DEBUG: "color: #5bc0de", // Light blue
-  INFO: "color: #28a745", // Green
-  WARN: "color: #ffc107", // Yellow
-  ERROR: "color: #dc3545", // Red
-  DEFAULT: "",
-} as const;
-
-const LogLevels = {
-  DEBUG: "debug",
-  INFO: "info",
-  WARN: "warn",
-  ERROR: "error",
-} as const;
-
 const isLogLevelEnabled = (messageLevel: keyof typeof LogLevels) => {
-  if (!options?.logLevel) return true; // If no level specified, show all logs
+  if (!options?.logLevel) return true;
   const configuredLevel = LogLevel[options.logLevel];
   const currentLevel = LogLevel[messageLevel];
   return currentLevel >= configuredLevel;
@@ -79,34 +67,6 @@ const logger = (
   }
 };
 
-let myDispatch: any;
-
-// Add cache interfaces
-interface CacheEntry {
-  data: any;
-  timestamp: number;
-  expiresAt: number;
-}
-
-interface RequestTracker {
-  timestamp: number;
-  promise: Promise<any>;
-}
-
-// Add cache and request tracking
-const cache = new Map<string, CacheEntry>();
-const pendingRequests = new Map<string, RequestTracker>();
-const backgroundSyncs = new Map<string, () => void>();
-let CACHE_DURATION = 5 * 1000; // 5 seconds (only used to reduce server requests within short span)
-
-const clearCache = (key?: string) => {
-  if (key) {
-    cache.delete(key);
-  } else {
-    cache.clear();
-  }
-};
-
 const ObjectIntoUrlParameters = (url: string, object: Record<string, any>) => {
   if (!object || Object.keys(object).length === 0) return url;
 
@@ -123,7 +83,136 @@ const ObjectIntoUrlParameters = (url: string, object: Record<string, any>) => {
   return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
 };
 
-let isInitialSyncCompleted = false;
+const updateRecentRequestData = (options: any, response: any) => {
+  const index = recentRequests.findIndex(
+    (item) => item.url === options.url && item.timestamp === options.timestamp
+  );
+
+  if (index !== -1) {
+    recentRequests[index] = {
+      ...recentRequests[index],
+      recieveTime: Date.now(),
+      response: response.clone(),
+    };
+  }
+};
+
+const waitForCompletingInitialSync = async () => {
+  return new Promise((resolve) => {
+    const interval = setInterval(() => {
+      if (isInitialSyncCompleted) {
+        clearInterval(interval);
+        resolve(true);
+      }
+    }, 100);
+  });
+};
+
+// Main functions
+const clearCache = (key?: string) => {
+  if (key) cache.delete(key);
+  else cache.clear();
+};
+
+const cleanOldRequests = (maxAge: number = 1000 * 60 * 5) => {
+  // 5 minutes default
+  const now = Date.now();
+  recentRequests = recentRequests.filter((req) => now - req.timestamp < maxAge);
+};
+
+const getHistory = (clean: boolean = true) => {
+  if (clean) {
+    cleanOldRequests();
+  }
+  return recentRequests;
+};
+
+const syncIndividual = async (
+  name: string,
+  fetchOptions: fetchOptions = {},
+  customAction?: null | ((data: any) => any),
+  dispatch: (action: any) => void = myDispatch
+) => {
+  if (!isInitialSyncCompleted && options.waiting) {
+    logger(`${name} Waiting for initial sync to complete`, "DEBUG");
+    await waitForCompletingInitialSync();
+  }
+  const cacheKey = `individual-${name}`;
+
+  if (pendingRequests.get(cacheKey)) {
+    logger(`Request already pending for ${name}`, "DEBUG");
+    return;
+  }
+
+  if (isFetchPendingForSameItem.includes(`${name}_${fetchOptions.path}`)) {
+    logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
+    return;
+  }
+
+  logger(`Starting individual sync for ${name}`, "INFO");
+  isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
+
+  try {
+    const config = orders.find((item) => item.key === name);
+    const url = items.get(name);
+    if (!url || !config) {
+      logger(`Configuration not found for ${name}`, "ERROR");
+      return throwErrorNow(`no url found for item ${name}`);
+    }
+
+    const requestOptions = { ...config.options, ...fetchOptions };
+
+    const requestUrlWithPath = requestOptions.path
+      ? `${url}${requestOptions.path}`
+      : url;
+
+    const requestUrl = requestOptions.params
+      ? ObjectIntoUrlParameters(requestUrlWithPath, requestOptions.params)
+      : requestUrlWithPath;
+
+    const requestData = {
+      url: requestUrl,
+      timestamp: Date.now(),
+      params: requestOptions.params || {},
+      headers: requestOptions.headers || {},
+      options: requestOptions,
+      path: requestOptions.path || "",
+      response: undefined,
+      recieveTime: undefined,
+    };
+
+    recentRequests.push(requestData);
+
+    const response = await fetch(requestUrl, requestOptions);
+
+    updateRecentRequestData(requestData, response);
+
+    if (!response.ok) {
+      logger(`Sync failed for ${name}`, "ERROR", {
+        status: response.status,
+        statusText: response.statusText,
+      });
+      throw new Error(`Failed to fetch ${name} ${response.statusText}`);
+    }
+    let data = null;
+    if (!config.transformResponse) data = await response.json();
+    else data = await config.transformResponse(response);
+
+    logger(`Individual sync successful for ${name}`, "INFO", {
+      dataSize: JSON.stringify(data).length,
+    });
+    if (typeof customAction == "function") dispatch(customAction(data));
+    else dispatch(config.action(data));
+    return data;
+  } catch (error) {
+    logger(`Sync error : ${error}`, "ERROR");
+  } finally {
+    isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
+      (el) => el !== `${name}_${fetchOptions.path}`
+    );
+    logger(`Completed individual sync for ${name}`, "DEBUG");
+  }
+};
 
 const useSync = ({
   fetchOrder,
@@ -208,10 +297,30 @@ const useSync = ({
         try {
           logger(`Making fresh request for ${config.key}`, "DEBUG");
           const requestParaams = config.options?.params;
-          const requestUrl = requestParaams
-            ? ObjectIntoUrlParameters(url, requestParaams)
+          const requestUrlWithPath = config.options?.path
+            ? `${url}${config.options?.path}`
             : url;
+          const requestUrl = requestParaams
+            ? ObjectIntoUrlParameters(requestUrlWithPath, requestParaams)
+            : requestUrlWithPath;
+
+          const requestData = {
+            url: requestUrl || url,
+            timestamp: Date.now(),
+            params: requestParaams || {},
+            headers: config.options?.headers || {},
+            options: config.options || {},
+            path: config.options?.path || "",
+            response: undefined,
+            recieveTime: undefined,
+          };
+
+          recentRequests.push(requestData);
+
           const response = await fetch(requestUrl, config.options || {});
+
+          updateRecentRequestData(requestData, response);
+
           if (!response.ok) {
             logger(`Request failed for ${config.key}`, "ERROR", {
               status: response.status,
@@ -429,88 +538,4 @@ const useSync = ({
   };
 };
 
-let isFetchPendingForSameItem: string[] = [];
-
-const waitForCompletingInitialSync = async () => {
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      if (isInitialSyncCompleted) {
-        clearInterval(interval);
-        resolve(true);
-      }
-    }, 100);
-  });
-};
-
-const syncIndividual = async (
-  name: string,
-  fetchOptions: fetchOptions = {},
-  customAction?: null | ((data: any) => any),
-  dispatch: (action: any) => void = myDispatch
-) => {
-  if (!isInitialSyncCompleted && options.waiting) {
-    logger(`${name} Waiting for initial sync to complete`, "DEBUG");
-    await waitForCompletingInitialSync();
-  }
-  const cacheKey = `individual-${name}`;
-
-  if (pendingRequests.get(cacheKey)) {
-    logger(`Request already pending for ${name}`, "DEBUG");
-    return;
-  }
-
-  if (isFetchPendingForSameItem.includes(`${name}_${fetchOptions.path}`)) {
-    logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
-    return;
-  }
-
-  logger(`Starting individual sync for ${name}`, "INFO");
-  isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
-
-  try {
-    const config = orders.find((item) => item.key === name);
-    const url = items.get(name);
-    if (!url || !config) {
-      logger(`Configuration not found for ${name}`, "ERROR");
-      return throwErrorNow(`no url found for item ${name}`);
-    }
-
-    const requestOptions = { ...config.options, ...fetchOptions };
-
-    const requestUrlWithPath = requestOptions.path
-      ? `${url}${requestOptions.path}`
-      : url;
-
-    const requestUrl = requestOptions.params
-      ? ObjectIntoUrlParameters(requestUrlWithPath, requestOptions.params)
-      : requestUrlWithPath;
-
-    const response = await fetch(requestUrl, requestOptions);
-    if (!response.ok) {
-      logger(`Sync failed for ${name}`, "ERROR", {
-        status: response.status,
-        statusText: response.statusText,
-      });
-      throw new Error(`Failed to fetch ${name} ${response.statusText}`);
-    }
-    let data = null;
-    if (!config.transformResponse) data = await response.json();
-    else data = await config.transformResponse(response);
-
-    logger(`Individual sync successful for ${name}`, "INFO", {
-      dataSize: JSON.stringify(data).length,
-    });
-    if (typeof customAction == "function") dispatch(customAction(data));
-    else dispatch(config.action(data));
-    return data;
-  } catch (error) {
-    logger(`Sync error : ${error}`, "ERROR");
-  } finally {
-    isFetchPendingForSameItem = isFetchPendingForSameItem.filter(
-      (el) => el !== `${name}_${fetchOptions.path}`
-    );
-    logger(`Completed individual sync for ${name}`, "DEBUG");
-  }
-};
-
-export { useSync, syncIndividual, clearCache };
+export { useSync, syncIndividual, clearCache, getHistory };
