@@ -92,7 +92,7 @@ const updateRecentRequestData = (options: any, response: any) => {
     recentRequests[index] = {
       ...recentRequests[index],
       recieveTime: Date.now(),
-      response: response.clone(),
+      response: response,
     };
   }
 };
@@ -185,8 +185,6 @@ const syncIndividual = async (
 
     const response = await fetch(requestUrl, requestOptions);
 
-    updateRecentRequestData(requestData, response);
-
     if (!response.ok) {
       logger(`Sync failed for ${name}`, "ERROR", {
         status: response.status,
@@ -197,6 +195,8 @@ const syncIndividual = async (
     let data = null;
     if (!config.transformResponse) data = await response.json();
     else data = await config.transformResponse(response);
+
+    updateRecentRequestData(requestData, data);
 
     logger(`Individual sync successful for ${name}`, "INFO", {
       dataSize: JSON.stringify(data).length,
@@ -316,10 +316,7 @@ const useSync = ({
           };
 
           recentRequests.push(requestData);
-
           const response = await fetch(requestUrl, config.options || {});
-
-          updateRecentRequestData(requestData, response);
 
           if (!response.ok) {
             logger(`Request failed for ${config.key}`, "ERROR", {
@@ -328,7 +325,12 @@ const useSync = ({
             throw new Error(`Failed to fetch ${config.key}`);
           }
 
-          const data = await response.json();
+          let data = null;
+
+          if (!config.transformResponse) data = await response.json();
+          else await config.transformResponse(response);
+
+          updateRecentRequestData(requestData, data);
 
           // Cache the successful response
           cache.set(cacheKey, {
