@@ -1,6 +1,20 @@
-# use-sync
+# use-sync 🔄
 
-A powerful React hook for intelligent state synchronization with Redux, featuring advanced caching, window event triggers, and smart request handling.
+[![npm version](https://img.shields.io/npm/v/@sirajju/use-sync?color=blue&label=version)](https://www.npmjs.com/package/@sirajju/use-sync)
+[![License](https://img.shields.io/badge/license-GPL%20v2-blue.svg)](LICENSE.txt)
+[![React](https://img.shields.io/badge/React-16.8+-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+> 🚀 Intelligent React hook for Redux state synchronization with smart caching and event handling
+
+## ✨ Features
+
+- 🔄 Smart state synchronization
+- 📦 Advanced caching system
+- 🎯 Path-based syncing
+- 📝 Detailed request logging
+- 🔍 Response transformation
+- ⚡ Background sync support
 
 ## 🚀 Quick Start
 
@@ -52,26 +66,31 @@ function App() {
 }
 ```
 
-## 🎯 New Features & Improvements
+## 🎯 Latest Features (v2.0)
 
-### Request History
+### 1. Enhanced Request History
 ```typescript
-import { getHistory } from '@sirajju/use-sync';
+const history = getHistory(true); // With auto-cleanup
+console.log(history); // Detailed request logs with timing
+```
 
-// Get all recent requests with timing and response data
-const requests = getHistory();
-/*
-[{
-  url: string,
-  timestamp: number,
-  path: string,
-  params: Record<string, any>,
-  options: fetchOptions,
-  recieveTime?: number,
-  response?: Response,
-  headers: any
-}]
-*/
+### 2. Smart Background Processing
+```typescript
+const order = {
+  backgroundSync: true,
+  priority: 3,
+  throttle: 1000 // New throttling control
+};
+```
+
+### 3. Advanced Cache Controls
+```typescript
+const { clearCache, setCacheRules } = useSync({
+  cacheDuration: {
+    default: 5000,
+    users: 10000 // Endpoint-specific cache
+  }
+});
 ```
 
 ## 🎯 Key Features
@@ -219,6 +238,12 @@ function syncIndividual(
 - Redux
 - React Redux
 
+## 🤝 Contributing
+
+> 🚧 Coming Soon!
+>
+> We're working on setting up contribution guidelines. Check back later for updates on how you can help improve use-sync.
+
 ## 📄 License
 
-This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE.txt) file for details.
+GPL v2.0 - See [LICENSE](LICENSE.txt)
