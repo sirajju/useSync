@@ -336,9 +336,9 @@ const useSync = ({
                 }
               );
               updateRecentRequestData(requestData, data);
-              throwErrorNow(`Failed to fetch ${config.key}`);
+              throwErrorNow(data.message || response);
             } catch (error) {
-              throwErrorNow(`Failed to fetch ${config.key}`);
+              throwErrorNow(data.message || response);
             }
           }
 
