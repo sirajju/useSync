@@ -1,6 +1,6 @@
 {
   "name": "@sirajju/use-sync",
-  "version": "3.6.17",
+  "version": "3.6.18",
   "description": "A package for keep updating the states",
   "keywords": [
     "React",
