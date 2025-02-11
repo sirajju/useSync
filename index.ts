@@ -318,19 +318,29 @@ const useSync = ({
           recentRequests.push(requestData);
           const response = await fetch(requestUrl, config.options || {});
 
-          if (!response.ok) {
-            logger(`Request failed for ${config.key}`, "ERROR", {
-              status: response.status,
-            });
-            throw new Error(`Failed to fetch ${config.key}`);
-          }
-
           let data = null;
 
           if (!config.transformResponse) data = await response.json();
-          else await config.transformResponse(response);
+          else data = await config.transformResponse(response);
 
           updateRecentRequestData(requestData, data);
+
+          if (!response.ok) {
+            try {
+              logger(
+                data.message || `Request failed for ${config.key}`,
+                "ERROR",
+                {
+                  status: response.status,
+                  statusText: response.statusText,
+                }
+              );
+              updateRecentRequestData(requestData, data);
+              throwErrorNow(`Failed to fetch ${config.key}`);
+            } catch (error) {
+              throwErrorNow(`Failed to fetch ${config.key}`);
+            }
+          }
 
           // Cache the successful response
           cache.set(cacheKey, {

@@ -1,249 +1,277 @@
-# use-sync 🔄
+# use-sync
 
-[![npm version](https://img.shields.io/npm/v/@sirajju/use-sync?color=blue&label=version)](https://www.npmjs.com/package/@sirajju/use-sync)
-[![License](https://img.shields.io/badge/license-GPL%20v2-blue.svg)](LICENSE.txt)
-[![React](https://img.shields.io/badge/React-16.8+-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+A powerful React hook for managing state synchronization with intelligent caching, logging, and event-driven updates.
 
-> 🚀 Intelligent React hook for Redux state synchronization with smart caching and event handling
+## Features
 
-## ✨ Features
+- ⚡ Automatic state synchronization
+- 📦 Intelligent request caching
+- 🔌 Network status integration
+- 🎯 Window focus detection
+- 📡 Custom event triggers
+- 📋 Configurable logging
+- 🔒 Request deduplication
+- 🔄 Redux integration
+- ⏳ Loading states per item
+- 🗑️ Manual cache control
+- 📊 Detailed debug information
+- 📘 TypeScript support
 
-- 🔄 Smart state synchronization
-- 📦 Advanced caching system
-- 🎯 Path-based syncing
-- 📝 Detailed request logging
-- 🔍 Response transformation
-- ⚡ Background sync support
-
-## 🚀 Quick Start
+## Installation
 
 ```bash
+# Using npm
 npm install @sirajju/use-sync
+
+# Using yarn
+yarn add @sirajju/use-sync
+
+# Using pnpm
+pnpm add @sirajju/use-sync
 ```
 
-## 📖 Basic Example
+## Basic Usage
 
 ```typescript
 import { useSync } from "@sirajju/use-sync";
 
 function App() {
-  const endpoints = new Map([["users", "https://api.example.com/users"]]);
+  const endpoints = new Map([
+    ['users', 'https://api.example.com/users'],
+    ['products', 'https://api.example.com/products']
+  ]);
 
   const fetchOrders = [
     {
       key: "users",
       action: setUsers,
-      priority: 1, // Higher priority items fetch first
-      includedPaths: ['/dashboard', '/admin'], // Only sync on these paths
-      transformResponse: async (response) => {
-        const data = await response.json();
-        return data.items; // Transform response before dispatch
-      },
       refetchOnFocus: true,
       refetchOnline: true,
-      initialSync: true, // Control initial fetch
-      backgroundSync: false, // Control background syncing
-      triggerEvents: ["scroll", "resize"], // Window events only
+      triggerEvents: ['scroll', 'resize'], // Only window events
       options: {
-        path: "/active", // Append to base URL
-        params: { limit: 10 }, // Query parameters
-        headers: { "Content-Type": "application/json" },
-      },
-    },
+        headers: { "Content-Type": "application/json" }
+      }
+    }
   ];
 
-  const { isPending, haveError, loadingItems, refresh, clearCache } = useSync({
+  const { 
+    isPending, 
+    haveError, 
+    loadingItems, 
+    clearCache, 
+    refresh 
+  } = useSync({
     fetchItems: endpoints,
     fetchOrder: fetchOrders,
     logger: true,
     logLevel: "DEBUG",
     cacheDuration: 5000,
-    waiting: true // Wait for initial sync before individual calls
+    onError: (error) => console.error(error)
   });
 
-  return isPending ? <Loading /> : <UserList />;
+  // Access loading state for specific items
+  console.log("Currently loading:", loadingItems);
+
+  return <div>{/* Your UI */}</div>;
 }
 ```
 
-## 🎯 Latest Features (v2.0)
+## Advanced Features
 
-### 1. Enhanced Request History
-```typescript
-const history = getHistory(true); // With auto-cleanup
-console.log(history); // Detailed request logs with timing
-```
+### Cache Control
 
-### 2. Smart Background Processing
 ```typescript
-const order = {
-  backgroundSync: true,
-  priority: 3,
-  throttle: 1000 // New throttling control
-};
-```
+import { useSync, clearCache } from "@sirajju/use-sync";
 
-### 3. Advanced Cache Controls
-```typescript
-const { clearCache, setCacheRules } = useSync({
-  cacheDuration: {
-    default: 5000,
-    users: 10000 // Endpoint-specific cache
-  }
+// Clear specific item's cache
+clearCache("users");
+
+// Clear all cache
+clearCache();
+
+// Configure cache duration (milliseconds)
+useSync({
+  cacheDuration: 10000,  // 10 seconds
+  // ...other config
 });
 ```
 
-## 🎯 Key Features
+### Logging System
 
-### 1. Intelligent Caching
 ```typescript
-const { clearCache } = useSync({
-  fetchItems: endpoints,
-  fetchOrder: orders,
-  cacheDuration: 5000 // Cache duration in milliseconds
+useSync({
+  logger: true,
+  logLevel: "DEBUG", // "DEBUG" | "INFO" | "WARN" | "ERROR"
+  // ...other config
 });
-
-// Clear specific or all cache
-clearCache("users"); // Clear specific endpoint
-clearCache(); // Clear all cache
 ```
 
-### 2. Smart Request Handling
+### Window Event Triggers
+
 ```typescript
-const order = {
+const fetchOrders = [{
   key: "users",
-  backgroundSync: true, // Non-blocking sync
-  initialSync: false, // Skip initial fetch
-  refetchOnFocus: true, // Refetch when window focused
-  refetchOnline: true // Refetch when back online
-};
+  action: setUsers,
+  triggerEvents: ['scroll', 'resize', 'storage'] // Only window events are supported
+}];
+
+// Data will be automatically refetched on these window events
 ```
 
-### 3. Path-Based Syncing
+### Available Window Events
+Common events you can use:
+- `scroll` - Window scroll
+- `resize` - Window resize
+- `storage` - LocalStorage changes
+- `offline` - Browser goes offline
+- `online` - Browser goes online
+- `focus` - Window gains focus
+- `blur` - Window loses focus
+- `visibilitychange` - Tab visibility changes
+- `beforeunload` - Before window unload
+- `load` - Window load complete
+- `DOMContentLoaded` - Initial HTML loaded
+- `popstate` - Browser history changes
+
+### Manual Sync with Progress Tracking
+
 ```typescript
-const order = {
-  key: "admin-data",
-  includedPaths: ['/admin', '/dashboard'], // Only sync on these paths
-  priority: 2 // Higher priority = earlier fetch
-};
-```
+import { syncIndividual } from "@sirajju/use-sync";
 
-### 4. Advanced Logging
-```typescript
-const config = {
-  log: true, // Enable logging
-  logLevel: "DEBUG", // DEBUG | INFO | WARN | ERROR
-  logger: (level, message) => {
-    customLogger.log(level, message); // Optional custom logger
-  }
-};
-```
-
-### 5. Response Transformation
-```typescript
-const order = {
-  transformResponse: async (response) => {
-    const data = await response.json();
-    return data.items; // Transform before dispatch
-  }
-};
-```
-
-### 6. Synchronized Individual Calls
-```typescript
-// With waiting: true, this will wait for initial sync to complete
-const data = await syncIndividual('users', {
-  path: '/active',
-  params: { status: 'online' }
-});
-
-// Configure sync behavior
-const config = {
-  waiting: true, // Makes syncIndividual wait for initial sync
-  // ...other config options
-};
-```
-
-## 📚 API Reference
-
-### Types
-```typescript
-interface order {
-  key: string;                                           // Unique identifier for the request
-  action: (data: any) => any;                           // Redux action to dispatch
-  priority?: number;                                     // Higher number = higher priority
-  includedPaths?: string[];                             // Paths where sync is allowed
-  transformResponse?: (response: Response) => Promise<any>; // Transform response before dispatch
-  refetchOnFocus?: boolean;                             // Refetch when window gains focus
-  refetchOnline?: boolean;                              // Refetch when connection restored
-  initialSync?: boolean;                                // Whether to sync on mount
-  backgroundSync?: boolean;                             // Non-blocking background sync
-  triggerEvents?: (keyof WindowEventMap)[];             // Window events that trigger sync
-  options?: {
-    path?: string;                                      // Append to base URL
-    params?: Record<string, any>;                       // URL query parameters
-    method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-    headers?: HeadersInit;
-    body?: any;
+function RefreshButton() {
+  const handleRefresh = async () => {
+    try {
+      const data = await syncIndividual("users");
+      console.log("Refresh complete:", data);
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    }
   };
-}
 
-interface fetchOptions {
-  path?: string;
-  params?: Record<string, any>;
-  method?: string;
-  headers?: HeadersInit;
-  body?: any;
+  return <button onClick={handleRefresh}>Refresh</button>;
 }
 ```
+
+## API Reference
 
 ### useSync Hook
+
 ```typescript
 interface useSyncProps {
-  fetchItems: Map<string, string>;
-  fetchOrder: order[];
-  throwError?: boolean;
-  onError?: (error: any) => void;
-  log?: boolean;
-  logger?: (level: "DEBUG" | "INFO" | "WARN" | "ERROR", message: string) => void;
-  cacheDuration?: number;
+  fetchItems: Map<string, string>;    // API endpoints
+  fetchOrder: order[];                // Sync configurations
+  throwError?: boolean;               // Error handling mode
+  onError?: (error: any) => void;     // Error callback
+  logger?: boolean;                   // Enable logging
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
-  waiting?: boolean;    // Wait for initial sync before individual calls
+  cacheDuration?: number;             // Cache duration in ms
+}
+
+interface SyncResult {
+  isPending: boolean;                 // Global loading state
+  haveError: boolean;                 // Error state
+  loadingItems: string[];            // Currently loading items
+  clearCache: (key?: string) => void; // Cache control
+  refresh: () => Promise<void>;       // Manual refresh
 }
 ```
 
-### Sync Behavior
-- When `waiting: true`
-  - `syncIndividual` calls wait for initial sync to complete
-  - Prevents race conditions with initial data loading
-  - Ensures consistent state management
-- When `waiting: false` (default)
-  - `syncIndividual` calls execute immediately
-  - May run in parallel with initial sync
-  - Useful for independent data fetching
+### Order Configuration
 
-### syncIndividual Function
 ```typescript
-function syncIndividual(
-  name: string, 
-  options?: fetchOptions,
-  customAction?: (data: any) => any,
-  dispatch?: (action: any) => void
-): Promise<any>;
+type order = {
+  key: string;                     // Unique identifier
+  action: (data: any) => any;      // Redux action creator
+  refetchOnFocus?: boolean;        // Refetch on window focus
+  refetchOnline?: boolean;         // Refetch when online
+  triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
+  options?: RequestInit;           // Fetch options
+};
 ```
 
-## 📦 Requirements
+## TypeScript Type Definitions
+
+```typescript
+// Core types
+type SyncKey = string;
+type EndpointURL = string;
+type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
+
+// Configuration interfaces
+interface SyncConfig {
+  fetchItems: Map<SyncKey, EndpointURL>;
+  fetchOrder: SyncOrder[];
+  throwError?: boolean;
+  onError?: ErrorCallback;
+  logger?: boolean;
+  logLevel?: LogLevel;
+  cacheDuration?: number;
+}
+
+interface SyncOrder {
+  key: SyncKey;
+  action: ActionCreator;
+  refetchOnFocus?: boolean;
+  refetchOnline?: boolean;
+  triggerEvents?: WindowEventName[];
+  options?: RequestInit;
+}
+
+// Result types
+interface SyncResult {
+  isPending: boolean;
+  haveError: boolean;
+  loadingItems: SyncKey[];
+  clearCache: (key?: SyncKey) => void;
+  refresh: () => Promise<void>;
+}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Cache Not Clearing**
+   ```typescript
+   // Make sure to use the correct key
+   clearCache("exact-key-name");
+   ```
+
+2. **Event Triggers Not Working**
+   ```typescript
+   // Only use valid window events
+   triggerEvents: ['scroll', 'resize'] // ✅ Correct
+   triggerEvents: ['custom-event']     // ❌ Incorrect
+   ```
+
+3. **Redux Integration**
+   ```typescript
+   // Ensure your action creator is properly typed
+   const action: ActionCreator = (data) => ({
+     type: 'SET_DATA',
+     payload: data
+   });
+   ```
+
+### Debug Mode
+
+Enable detailed logging for troubleshooting:
+
+```typescript
+useSync({
+  logger: true,
+  logLevel: "DEBUG",
+  // ...other config
+});
+```
+
+## Requirements
 
 - React 16.8+
-- Redux
-- React Redux
+- Redux 4.x
+- React Redux 7.x
+- TypeScript 4.x (for TypeScript users)
 
-## 🤝 Contributing
+## License
 
-> 🚧 Coming Soon!
->
-> We're working on setting up contribution guidelines. Check back later for updates on how you can help improve use-sync.
-
-## 📄 License
-
-GPL v2.0 - See [LICENSE](LICENSE.txt)
+ISC License
