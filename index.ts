@@ -316,7 +316,9 @@ const useSync = ({
           };
 
           recentRequests.push(requestData);
-          const response = await fetch(requestUrl, config.options || {});
+          const response = config.customFetch
+            ? await config.customFetch(requestUrl, config.options || {})
+            : await fetch(requestUrl, config.options || {});
 
           let data = null;
 
@@ -485,6 +487,8 @@ const useSync = ({
             if (mountedRef.current) {
               dispatch(config.action(data));
             }
+          } catch (error) {
+            logger(`Sync error : ${error}`, "ERROR");
           } finally {
             if (mountedRef.current) {
               pendingItemsRef.current = pendingItemsRef.current.filter(

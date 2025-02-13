@@ -59,6 +59,7 @@ export type order = {
     triggerEvents?: (keyof WindowEventMap)[];
     options?: fetchOptions;
     priority?: number;
+    customFetch?: (url: string, options: any) => Promise<any>;
 };
 export interface fetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
