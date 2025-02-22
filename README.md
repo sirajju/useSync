@@ -76,6 +76,44 @@ function App() {
 }
 ```
 
+## 🎯 Latest Features (v2.2)
+
+### Configurable Duplicate Requests
+```typescript
+const fetchOrders = [{
+  key: "users",
+  action: setUsers,
+  allowDuplicates: true, // Allow parallel requests for same endpoint
+  // ...other config
+}];
+```
+
+### Custom Fetch Implementation
+```typescript
+const { isPending } = useSync({
+  fetchItems: endpoints,
+  fetchOrder: orders,
+  customFetch: async (url, options) => {
+    // Use your own fetch implementation
+    return await axios.get(url, options);
+  }
+});
+```
+
+### Enhanced Error Handling
+```typescript
+const order = {
+  key: "users",
+  action: setUsers,
+  options: {
+    errorHandler: (error) => {
+      // Custom error handling per request
+      console.error(`Users sync failed: ${error}`);
+    }
+  }
+};
+```
+
 ## Advanced Features
 
 ### Cache Control
@@ -165,14 +203,7 @@ interface useSyncProps {
   logger?: boolean;                   // Enable logging
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
   cacheDuration?: number;             // Cache duration in ms
-}
-
-interface SyncResult {
-  isPending: boolean;                 // Global loading state
-  haveError: boolean;                 // Error state
-  loadingItems: string[];            // Currently loading items
-  clearCache: (key?: string) => void; // Cache control
-  refresh: () => Promise<void>;       // Manual refresh
+  customFetch?: (url: string, options: any) => Promise<Response>; // Custom fetch
 }
 ```
 
@@ -182,6 +213,7 @@ interface SyncResult {
 type order = {
   key: string;                     // Unique identifier
   action: (data: any) => any;      // Redux action creator
+  allowDuplicates?: boolean;       // Allow parallel requests
   refetchOnFocus?: boolean;        // Refetch on window focus
   refetchOnline?: boolean;         // Refetch when online
   triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
@@ -206,11 +238,13 @@ interface SyncConfig {
   logger?: boolean;
   logLevel?: LogLevel;
   cacheDuration?: number;
+  customFetch?: (url: string, options: any) => Promise<Response>;
 }
 
 interface SyncOrder {
   key: SyncKey;
   action: ActionCreator;
+  allowDuplicates?: boolean;
   refetchOnFocus?: boolean;
   refetchOnline?: boolean;
   triggerEvents?: WindowEventName[];

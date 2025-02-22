@@ -137,29 +137,24 @@ const syncIndividual = async (
     logger(`${name} Waiting for initial sync to complete`, "DEBUG");
     await waitForCompletingInitialSync();
   }
-  const cacheKey = `individual-${name}`;
 
-  if (pendingRequests.get(cacheKey)) {
-    logger(`Request already pending for ${name}`, "DEBUG");
-    return;
+  const config = orders.find((item) => item.key === name);
+  const url = items.get(name);
+  if (!url || !config) {
+    logger(`Configuration not found for ${name}`, "ERROR");
+    return throwErrorNow(`no url found for item ${name}`);
   }
-
-  if (isFetchPendingForSameItem.includes(`${name}_${fetchOptions.path}`)) {
-    logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
-    return;
-  }
-
-  logger(`Starting individual sync for ${name}`, "INFO");
-  isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
-
-  try {
-    const config = orders.find((item) => item.key === name);
-    const url = items.get(name);
-    if (!url || !config) {
-      logger(`Configuration not found for ${name}`, "ERROR");
-      return throwErrorNow(`no url found for item ${name}`);
+  if (!config.allowDuplicates) {
+    if (isFetchPendingForSameItem.includes(`${name}_${fetchOptions.path}`)) {
+      logger(`Skipping duplicate fetch for ${name}`, "DEBUG");
+      return;
     }
 
+    logger(`Starting individual sync for ${name}`, "INFO");
+    isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
+  }
+
+  try {
     const requestOptions = { ...config.options, ...fetchOptions };
 
     const requestUrlWithPath = requestOptions.path
@@ -316,8 +311,8 @@ const useSync = ({
           };
 
           recentRequests.push(requestData);
-          const response = config.customFetch
-            ? await config.customFetch(requestUrl, config.options || {})
+          const response = options.customFetch
+            ? await options.customFetch(requestUrl, config.options || {})
             : await fetch(requestUrl, config.options || {});
 
           let data = null;

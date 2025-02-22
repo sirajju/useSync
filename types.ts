@@ -52,6 +52,7 @@ export interface useSyncProps {
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
   waiting?: boolean;
+  customFetch?: (url: string, options: any) => Promise<any>;
 }
 
 export type order = {
@@ -66,7 +67,7 @@ export type order = {
   triggerEvents?: (keyof WindowEventMap)[];
   options?: fetchOptions;
   priority?: number;
-  customFetch?: (url: string, options: any) => Promise<any>;
+  allowDuplicates?: boolean;
 };
 
 export interface fetchOptions {
