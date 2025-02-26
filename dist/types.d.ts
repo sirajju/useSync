@@ -47,6 +47,7 @@ export interface useSyncProps {
     logLevel?: keyof typeof LogLevel;
     waiting?: boolean;
     customFetch?: (url: string, options: any) => Promise<any>;
+    reSyncOnPathChange?: boolean;
 }
 export type order = {
     key: string;

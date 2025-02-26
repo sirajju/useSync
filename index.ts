@@ -530,11 +530,10 @@ const useSync = ({
     }
   }, [dispatch, fetchWithCache, handleSync]);
 
-  // Add location tracking
   const [location, setLocation] = useState(window.location.pathname);
 
-  // Listen for location changes
   useEffect(() => {
+    if (!configRef.current.reSyncOnPathChange) return;
     const handleLocationChange = () => {
       const newPath = window.location.pathname;
       if (newPath !== location) {
