@@ -530,6 +530,51 @@ const useSync = ({
     }
   }, [dispatch, fetchWithCache, handleSync]);
 
+  // Add location tracking
+  const [location, setLocation] = useState(window.location.pathname);
+
+  // Listen for location changes
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const newPath = window.location.pathname;
+      if (newPath !== location) {
+        setLocation(newPath);
+        logger("Location changed, triggering re-sync", "INFO");
+        syncData();
+      }
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+
+    // For handling programmatic navigation (e.g., using react-router)
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function () {
+      originalPushState.apply(this, [...arguments] as [
+        any,
+        string,
+        string | URL | null | undefined
+      ]);
+      handleLocationChange();
+    };
+
+    window.history.replaceState = function () {
+      originalReplaceState.apply(this, [...arguments] as [
+        any,
+        string,
+        string | URL | null | undefined
+      ]);
+      handleLocationChange();
+    };
+
+    return () => {
+      window.removeEventListener("popstate", handleLocationChange);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, [location, syncData]);
+
   useEffect(() => {
     mountedRef.current = true;
     const cleanup = syncData();
