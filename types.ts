@@ -53,6 +53,7 @@ export interface useSyncProps {
   logLevel?: keyof typeof LogLevel;
   waiting?: boolean;
   customFetch?: (url: string, options: any) => Promise<any>;
+  getPathName?: (url: string) => string;
   reSyncOnPathChange?: boolean;
 }
 
@@ -65,6 +66,7 @@ export type order = {
   initialSync?: boolean;
   backgroundSync?: boolean;
   includedPaths?: string[];
+  excludedPaths?: string[];
   triggerEvents?: (keyof WindowEventMap)[];
   options?: fetchOptions;
   priority?: number;

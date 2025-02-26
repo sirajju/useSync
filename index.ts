@@ -424,13 +424,28 @@ const useSync = ({
 
       const promises = currentFetchOrder
         .map(async (config) => {
+          const url = currentFetchItems.get(config.key);
           if (
             typeof config.includedPaths === "object" &&
             Array.isArray(config.includedPaths)
           ) {
-            const currentPath = window.location.pathname;
+            const currentPath = options.getPathName
+              ? options.getPathName(url!)
+              : window.location.pathname;
             if (!config.includedPaths.includes(currentPath)) {
               logger(`Skipping ${config.key} - not in included paths`, "WARN");
+              return;
+            }
+          }
+          if (
+            typeof config.excludedPaths === "object" &&
+            Array.isArray(config.excludedPaths)
+          ) {
+            const currentPath = options.getPathName
+              ? options.getPathName(url!)
+              : window.location.pathname;
+            if (config.excludedPaths.includes(currentPath)) {
+              logger(`Skipping ${config.key} - in excluded paths`, "WARN");
               return;
             }
           }
@@ -459,7 +474,6 @@ const useSync = ({
             return;
           }
 
-          const url = currentFetchItems.get(config.key);
           if (!url) {
             logger(`URL not found for ${config.key}`, "ERROR");
             return throwErrorNow(`url not found for ${config.key}`);
