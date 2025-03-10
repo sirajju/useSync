@@ -130,7 +130,7 @@ const getHistory = (clean: boolean = true) => {
 const syncIndividual = async (
   name: string,
   fetchOptions: fetchOptions = {},
-  customAction?: null | ((data: any) => any),
+  customAction?: boolean | null | ((data: any) => any),
   dispatch: (action: any) => void = myDispatch
 ) => {
   if (!isInitialSyncCompleted && options.waiting) {
@@ -196,8 +196,10 @@ const syncIndividual = async (
     logger(`Individual sync successful for ${name}`, "INFO", {
       dataSize: JSON.stringify(data).length,
     });
-    if (typeof customAction == "function") dispatch(customAction(data));
-    else dispatch(config.action(data));
+    if (customAction !== false) {
+      if (typeof customAction == "function") dispatch(customAction(data));
+      else dispatch(config.action(data));
+    }
     return data;
   } catch (error) {
     logger(`Sync error : ${error}`, "ERROR");
