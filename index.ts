@@ -181,6 +181,22 @@ const syncIndividual = async (
     const response = await fetch(requestUrl, requestOptions);
 
     if (!response.ok) {
+      const haveJsonResponse = response.headers
+        .get("content-type")
+        ?.includes("application/json");
+      if (haveJsonResponse) {
+        try {
+          const errorData = await response.json();
+          logger(`Sync failed for ${name}`, "ERROR", {
+            status: response.status,
+            statusText: response.statusText,
+            errorData,
+          });
+          throw new Error(
+            `Failed to fetch ${name} ${response.statusText} - ${errorData.message}`
+          );
+        } catch (error) {}
+      }
       logger(`Sync failed for ${name}`, "ERROR", {
         status: response.status,
         statusText: response.statusText,
