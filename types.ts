@@ -48,7 +48,7 @@ export interface useSyncProps {
   throwError?: boolean;
   onError?: (error: any) => void;
   log?: boolean;
-  logger?: (level: keyof typeof LogLevel, message: string) => void;
+  logger?: (level: keyof typeof LogLevel, message: string , details?: any) => void;
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
   waiting?: boolean;

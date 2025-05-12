@@ -50,7 +50,7 @@ const logger = (
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] %c${level.toUpperCase()}%c: ${message}`;
 
-  if (options.logger) return options.logger(level, message);
+  if (options.logger) return options.logger(level, message, details);
   if (details) {
     (console[level.toLowerCase() as keyof Console] as Function)(
       logMessage,
