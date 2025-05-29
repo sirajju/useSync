@@ -95,5 +95,6 @@ export interface fetchOptions {
   keepalive?: boolean;
   signal?: AbortSignal;
   indexDbCache?: boolean;
+  useIndexDB?: boolean; // Direct control over whether to use IndexedDB for this specific request
   updateIndexDbData?: boolean;
 }

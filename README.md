@@ -153,6 +153,15 @@ const fetchOrders = [{
   // ...other config
 }];
 
+// Control caching at the individual request level
+syncIndividual(
+  "users", 
+  { 
+    useIndexDB: false, // Override any previous settings and disable IndexedDB for this specific call
+    params: { id: 123 }
+  }
+);
+
 // Background update with immediate cache usage
 const fetchOrders = [{
   key: "users",

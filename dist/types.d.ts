@@ -83,5 +83,6 @@ export interface fetchOptions {
     keepalive?: boolean;
     signal?: AbortSignal;
     indexDbCache?: boolean;
+    useIndexDB?: boolean;
     updateIndexDbData?: boolean;
 }

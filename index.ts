@@ -144,7 +144,8 @@ const syncIndividual = async (
   name: string,
   fetchOptions: fetchOptions = {},
   customAction?: boolean | null | ((data: any) => any),
-  dispatch: (action: any) => void = myDispatch
+  dispatch: (action: any) => void = myDispatch,
+  useIndexDB?: boolean
 ) => {
   if (!isInitialSyncCompleted && options.waiting) {
     logger(`${name} Waiting for initial sync to complete`, "DEBUG");
@@ -166,13 +167,16 @@ const syncIndividual = async (
     logger(`Starting individual sync for ${name}`, "INFO");
     isFetchPendingForSameItem.push(`${name}_${fetchOptions.path}`);
   }
-
   try {
     const requestOptions = { ...config.options, ...fetchOptions };
-    const useIndexDbCache =
-      typeof requestOptions.indexDbCache == "boolean"
-        ? requestOptions.indexDbCache
-        : config.indexDbCache;
+    
+    // Determine whether to use IndexedDB cache
+    // Priority: function parameter > fetchOptions.useIndexDB > requestOptions.indexDbCache > config.indexDbCache
+    const useIndexDbCache = 
+      typeof useIndexDB === 'boolean' ? useIndexDB :
+      typeof requestOptions.useIndexDB === 'boolean' ? requestOptions.useIndexDB :
+      typeof requestOptions.indexDbCache === 'boolean' ? requestOptions.indexDbCache :
+      config.indexDbCache;
 
     const requestUrlWithPath = requestOptions.path
       ? `${url}${requestOptions.path}`
@@ -389,27 +393,26 @@ const useSync = ({
   const pendingItemsRef = useRef<string[]>([]);
   const dispatch = useDispatch();
   myDispatch = dispatch;
-
   const handleSync = useCallback(
     async (key: string, options: fetchOptions = {}) => {
-      await syncIndividual(key, options, null, dispatch);
+      await syncIndividual(key, options, null, dispatch, options.useIndexDB);
     },
     [dispatch]
   );
 
   // Memoize fetchWithCache to prevent recreations
   const fetchWithCache = useCallback(async (config: order, url: string) => {
-    setLoadingItems((prev) => new Set([...Array.from(prev), config.key]));
-    try {
+    setLoadingItems((prev) => new Set([...Array.from(prev), config.key]));    try {
       const now = Date.now();
-      const useIndexDbCache =
+      
+      // Priority: options.useIndexDB > config.indexDbCache > config.options.indexDbCache
+      const useIndexDbCache = 
+        typeof config.options?.useIndexDB === 'boolean' ? config.options.useIndexDB :
         config.indexDbCache || config.options?.indexDbCache;
 
       // Get parameters if available
-      const requestParams = config.options?.params;
-
-      logger(`Fucking config: ${JSON.stringify(config)}`, "DEBUG");
-      logger(`Fucking url: ${url}`, "DEBUG");
+      const requestParams = config.options?.params;      logger(`Config: ${JSON.stringify(config)}`, "DEBUG");
+      logger(`URL: ${url}`, "DEBUG");
 
       logger(`Using cache duration: ${CACHE_DURATION}`, "DEBUG");
       logger(`Using IndexedDB cache: ${useIndexDbCache}`, "DEBUG");
