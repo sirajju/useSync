@@ -170,6 +170,8 @@ const syncIndividual = async (
   try {
     const requestOptions = { ...config.options, ...fetchOptions };
 
+    let REQUEST_METHOD = fetchOptions?.method?.toUpperCase() || "GET";
+
     // Determine whether to use IndexedDB cache
     // Priority: function parameter > fetchOptions.useIndexDB > requestOptions.indexDbCache > config.indexDbCache
     const useIndexDbCache =
@@ -179,7 +181,7 @@ const syncIndividual = async (
         ? requestOptions.useIndexDB
         : typeof requestOptions.indexDbCache === "boolean"
         ? requestOptions.indexDbCache
-        : config.indexDbCache) && fetchOptions.method == "GET";
+        : config.indexDbCache) && REQUEST_METHOD == "GET";
 
     const requestUrlWithPath = requestOptions.path
       ? `${url}${requestOptions.path}`
