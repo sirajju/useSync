@@ -195,12 +195,15 @@ const syncIndividual = async (
 
     recentRequests.push(requestData);
 
-    logger(`IndexedDB cache enabled: ${useIndexDbCache}`, "DEBUG");
-
-    // Check IndexedDB cache if enabled
+    logger(`IndexedDB cache enabled: ${useIndexDbCache}`, "DEBUG");    // Check IndexedDB cache if enabled
     if (useIndexDbCache) {
       try {
-        const cacheKey = `${name}-${requestUrl}`;
+        // Use custom cache key generator if provided, otherwise use default format
+        const cacheKey = options.generateCacheKey 
+          ? options.generateCacheKey(name, requestUrl, requestOptions.params)
+          : `${name}-${requestUrl}`;
+        
+        logger(`Using cache key: ${cacheKey}`, "DEBUG");
         const cachedData = await getFromIndexedDB(cacheKey);
         if (cachedData && Date.now() < cachedData.expiresAt) {
           logger(`Using IndexedDB cached data for ${name}`, "DEBUG");
@@ -216,8 +219,7 @@ const syncIndividual = async (
 
           // Handle updateIndexDbData option - fetch in background but use cache immediately
           if (requestOptions.updateIndexDbData) {
-            logger(`Background updating IndexedDB data for ${name}`, "DEBUG");
-            // Execute fetch in background, don't wait for result
+            logger(`Background updating IndexedDB data for ${name}`, "DEBUG");            // Execute fetch in background, don't wait for result
             (async () => {
               try {
                 const freshResponse = await fetch(requestUrl, requestOptions);
@@ -228,11 +230,16 @@ const syncIndividual = async (
                   else
                     freshData = await config.transformResponse(freshResponse);
 
+                  // Regenerate the cache key in case params have changed
+                  const bgUpdateCacheKey = options.generateCacheKey 
+                    ? options.generateCacheKey(name, requestUrl, requestOptions.params)
+                    : cacheKey; // Use original key if no generator
+                    
                   // Update IndexedDB with fresh data
                   const expiresAt =
                     Date.now() +
                     (options.cacheDuration || INDEXDB_CACHE_DURATION);
-                  await storeInIndexedDB(cacheKey, freshData, expiresAt);
+                  await storeInIndexedDB(bgUpdateCacheKey, freshData, expiresAt);
 
                   logger(
                     `Updated IndexedDB data for ${name} in background`,
@@ -298,11 +305,12 @@ const syncIndividual = async (
 
     logger(`Individual sync successful for ${name}`, "INFO", {
       dataSize: JSON.stringify(data).length,
-    });
-
-    // Store in IndexedDB if enabled
+    });    // Store in IndexedDB if enabled
     if (useIndexDbCache) {
-      const cacheKey = `${name}-${requestUrl}`;
+      const cacheKey = options.generateCacheKey 
+        ? options.generateCacheKey(name, requestUrl, requestOptions.params)
+        : `${name}-${requestUrl}`;
+      
       const expiresAt =
         Date.now() + (options.cacheDuration || INDEXDB_CACHE_DURATION);
       storeInIndexedDB(cacheKey, data, expiresAt).catch((error) => {
@@ -383,22 +391,27 @@ const useSync = ({
 
   // Memoize fetchWithCache to prevent recreations
   const fetchWithCache = useCallback(async (config: order, url: string) => {
-    setLoadingItems((prev) => new Set([...Array.from(prev), config.key]));
-
-    try {
-      const cacheKey = `${config.key}-${url}`;
+    setLoadingItems((prev) => new Set([...Array.from(prev), config.key]));    try {
       const now = Date.now();
       const useIndexDbCache =
         config.indexDbCache || config.options?.indexDbCache;
+      
+      // Get parameters if available
+      const requestParams = config.options?.params;
+      
+      // Generate cache key using custom function if available
+      const cacheKey = options.generateCacheKey 
+        ? options.generateCacheKey(config.key, url, requestParams)
+        : `${config.key}-${url}`;
 
+      logger(`Using cache key in fetchWithCache: ${cacheKey}`, "DEBUG");
+      
       // Check memory cache first
       const cachedData = cache.get(cacheKey);
       if (cachedData && now < cachedData.expiresAt) {
         logger(`Using in-memory cached data for ${config.key}`, "DEBUG");
         return cachedData.data;
-      }
-
-      // Check IndexedDB cache if enabled
+      }      // Check IndexedDB cache if enabled
       if (useIndexDbCache) {
         try {
           const indexedDBData = await getFromIndexedDB(cacheKey);
@@ -417,9 +430,7 @@ const useSync = ({
               logger(
                 `Background updating IndexedDB data for ${config.key}`,
                 "DEBUG"
-              );
-
-              // Don't wait for this to complete
+              );              // Don't wait for this to complete
               (async () => {
                 try {
                   const requestParaams = config.options?.params;
@@ -432,6 +443,11 @@ const useSync = ({
                         requestParaams
                       )
                     : requestUrlWithPath;
+                    
+                  // Re-calculate the cache key in case params have changed
+                  const bgUpdateCacheKey = options.generateCacheKey 
+                    ? options.generateCacheKey(config.key, requestUrl, requestParaams)
+                    : cacheKey; // Use the original cache key if no generator
 
                   const response = options.customFetch
                     ? await options.customFetch(
@@ -444,14 +460,10 @@ const useSync = ({
                     let freshData = null;
                     if (!config.transformResponse)
                       freshData = await response.json();
-                    else freshData = await config.transformResponse(response);
-
-                    // Update IndexedDB with fresh data
+                    else freshData = await config.transformResponse(response);                    // Update IndexedDB with fresh data
                     const expiresAt = now + INDEXDB_CACHE_DURATION;
-                    await storeInIndexedDB(cacheKey, freshData, expiresAt);
-
-                    // Also update in-memory cache
-                    cache.set(cacheKey, {
+                    await storeInIndexedDB(bgUpdateCacheKey, freshData, expiresAt);                    // Also update in-memory cache
+                    cache.set(bgUpdateCacheKey, {
                       data: freshData,
                       timestamp: now,
                       expiresAt,
@@ -535,17 +547,13 @@ const useSync = ({
             } catch (error) {
               throwErrorNow(data.message || response);
             }
-          }
-
-          // Cache the successful response
+          }          // Cache the successful response
           const expiresAt = now + CACHE_DURATION;
           cache.set(cacheKey, {
             data,
             timestamp: now,
             expiresAt: expiresAt,
-          });
-
-          // Store in IndexedDB if enabled
+          });          // Store in IndexedDB if enabled
           if (useIndexDbCache) {
             storeInIndexedDB(cacheKey, data, expiresAt).catch((error) => {
               logger(`Failed to store in IndexedDB: ${error}`, "ERROR");
@@ -760,7 +768,7 @@ const useSync = ({
       if (newPath !== location) {
         setLocation(newPath);
         logger("Location changed, triggering re-sync", "INFO");
-        syncData();
+        syncData(); 
       }
     };
 

@@ -59,6 +59,7 @@ export interface useSyncProps {
   customFetch?: (url: string, options: any) => Promise<any>;
   getPathName?: (url: string) => string;
   reSyncOnPathChange?: boolean;
+  generateCacheKey?: (name: string, url: string, params?: Record<string, any>) => string;
 }
 
 export type order = {
