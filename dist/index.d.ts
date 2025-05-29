@@ -10,4 +10,4 @@ declare const useSync: ({ fetchOrder, fetchItems, throwError, cacheDuration, log
     refresh: () => Promise<(() => void) | undefined>;
     loadingItems: string[];
 };
-export { useSync, syncIndividual, clearCache, getHistory, storeInIndexedDB, getFromIndexedDB, deleteFromIndexedDB, clearIndexedDBCache };
+export { useSync, syncIndividual, clearCache, getHistory, storeInIndexedDB, getFromIndexedDB, deleteFromIndexedDB, clearIndexedDBCache, };
