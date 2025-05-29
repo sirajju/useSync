@@ -128,11 +128,29 @@ clearCache("users");
 // Clear all cache
 clearCache();
 
-// Configure cache duration (milliseconds)
+// Configure cache durations (milliseconds)
 useSync({
+  // Legacy option - controls both memory and IndexedDB cache if specific durations aren't provided
   cacheDuration: 10000,  // 10 seconds
+  
+  // Specific control over memory cache duration
+  memoryCacheDuration: 5000,  // 5 seconds
+  
+  // Specific control over IndexedDB cache duration
+  indexDbCacheDuration: 86400000,  // 24 hours
+  
   // ...other config
 });
+
+// Control cache durations at request level
+syncIndividual(
+  "users", 
+  { 
+    memoryCacheDuration: 30000,     // 30 seconds memory cache for this request
+    indexDbCacheDuration: 3600000,  // 1 hour IndexedDB cache for this request
+    params: { id: 123 }
+  }
+);
 ```
 
 ### IndexedDB Persistent Cache
@@ -249,7 +267,9 @@ interface useSyncProps {
   onError?: (error: any) => void;     // Error callback
   logger?: boolean;                   // Enable logging
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
-  cacheDuration?: number;             // In-memory cache duration in ms
+  cacheDuration?: number;             // Legacy cache duration option (affects both memory and IndexedDB)
+  memoryCacheDuration?: number;       // Specific in-memory cache duration in ms
+  indexDbCacheDuration?: number;      // Specific IndexedDB cache duration in ms
   indexDbCache?: boolean;             // Enable IndexedDB persistent cache
   customFetch?: (url: string, options: any) => Promise<Response>; // Custom fetch
 }
@@ -265,10 +285,11 @@ type order = {
   refetchOnFocus?: boolean;        // Refetch on window focus
   refetchOnline?: boolean;         // Refetch when online
   indexDbCache?: boolean;          // Use IndexedDB for persistent cache
-  triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
-  options?: RequestInit & {
+  triggerEvents?: (keyof WindowEventMap)[]; // Window event names only  options?: RequestInit & {
     indexDbCache?: boolean;        // Enable IndexedDB at option level
     updateIndexDbData?: boolean;   // Use cache, then update in background
+    memoryCacheDuration?: number;  // Override memory cache duration for this request
+    indexDbCacheDuration?: number; // Override IndexedDB cache duration for this request
   };           
 };
 ```

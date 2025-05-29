@@ -53,13 +53,19 @@ export interface useSyncProps {
     message: string,
     details?: any
   ) => void;
-  cacheDuration?: number;
+  cacheDuration?: number; // Legacy prop - controls in-memory cache duration
+  memoryCacheDuration?: number; // Explicit in-memory cache duration (takes precedence over cacheDuration)
+  indexDbCacheDuration?: number; // IndexedDB cache duration
   logLevel?: keyof typeof LogLevel;
   waiting?: boolean;
   customFetch?: (url: string, options: any) => Promise<any>;
   getPathName?: (url: string) => string;
   reSyncOnPathChange?: boolean;
-  generateCacheKey?: (name: string, url: string, params?: Record<string, any>) => string;
+  generateCacheKey?: (
+    name: string,
+    url: string,
+    params?: Record<string, any>
+  ) => string;
 }
 
 export type order = {
@@ -97,4 +103,6 @@ export interface fetchOptions {
   indexDbCache?: boolean;
   useIndexDB?: boolean; // Direct control over whether to use IndexedDB for this specific request
   updateIndexDbData?: boolean;
+  memoryCacheDuration?: number; // Override memory cache duration for this request
+  indexDbCacheDuration?: number; // Override IndexedDB cache duration for this request
 }

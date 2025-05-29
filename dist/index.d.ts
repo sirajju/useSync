@@ -3,7 +3,7 @@ import { storeInIndexedDB, getFromIndexedDB, deleteFromIndexedDB, clearIndexedDB
 declare const clearCache: (key?: string) => Promise<void>;
 declare const getHistory: (clean?: boolean) => RecentRequest[];
 declare const syncIndividual: (name: string, fetchOptions?: fetchOptions, customAction?: boolean | null | ((data: any) => any), dispatch?: (action: any) => void, useIndexDB?: boolean) => Promise<any>;
-declare const useSync: ({ fetchOrder, fetchItems, throwError, cacheDuration, logLevel, ...rest }: useSyncProps) => {
+declare const useSync: ({ fetchOrder, fetchItems, throwError, cacheDuration, memoryCacheDuration, indexDbCacheDuration, logLevel, ...rest }: useSyncProps) => {
     isPending: boolean;
     haveError: boolean;
     clearCache: (key?: string) => Promise<void>;

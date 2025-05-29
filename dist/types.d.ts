@@ -44,6 +44,8 @@ export interface useSyncProps {
     log?: boolean;
     logger?: (level: keyof typeof LogLevel, message: string, details?: any) => void;
     cacheDuration?: number;
+    memoryCacheDuration?: number;
+    indexDbCacheDuration?: number;
     logLevel?: keyof typeof LogLevel;
     waiting?: boolean;
     customFetch?: (url: string, options: any) => Promise<any>;
@@ -85,4 +87,6 @@ export interface fetchOptions {
     indexDbCache?: boolean;
     useIndexDB?: boolean;
     updateIndexDbData?: boolean;
+    memoryCacheDuration?: number;
+    indexDbCacheDuration?: number;
 }
