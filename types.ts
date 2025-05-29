@@ -48,7 +48,11 @@ export interface useSyncProps {
   throwError?: boolean;
   onError?: (error: any) => void;
   log?: boolean;
-  logger?: (level: keyof typeof LogLevel, message: string , details?: any) => void;
+  logger?: (
+    level: keyof typeof LogLevel,
+    message: string,
+    details?: any
+  ) => void;
   cacheDuration?: number;
   logLevel?: keyof typeof LogLevel;
   waiting?: boolean;
@@ -71,6 +75,7 @@ export type order = {
   options?: fetchOptions;
   priority?: number;
   allowDuplicates?: boolean;
+  indexDbCache?: boolean;
 };
 
 export interface fetchOptions {
@@ -88,4 +93,6 @@ export interface fetchOptions {
   integrity?: string;
   keepalive?: boolean;
   signal?: AbortSignal;
+  indexDbCache?: boolean;
+  updateIndexDbData?: boolean;
 }

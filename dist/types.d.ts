@@ -64,6 +64,7 @@ export type order = {
     options?: fetchOptions;
     priority?: number;
     allowDuplicates?: boolean;
+    indexDbCache?: boolean;
 };
 export interface fetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
@@ -80,4 +81,6 @@ export interface fetchOptions {
     integrity?: string;
     keepalive?: boolean;
     signal?: AbortSignal;
+    indexDbCache?: boolean;
+    updateIndexDbData?: boolean;
 }
