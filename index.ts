@@ -173,13 +173,13 @@ const syncIndividual = async (
     // Determine whether to use IndexedDB cache
     // Priority: function parameter > fetchOptions.useIndexDB > requestOptions.indexDbCache > config.indexDbCache
     const useIndexDbCache =
-      typeof useIndexDB === "boolean"
+      (typeof useIndexDB === "boolean"
         ? useIndexDB
         : typeof requestOptions.useIndexDB === "boolean"
         ? requestOptions.useIndexDB
         : typeof requestOptions.indexDbCache === "boolean"
         ? requestOptions.indexDbCache
-        : config.indexDbCache;
+        : config.indexDbCache) && fetchOptions.method == "GET";
 
     const requestUrlWithPath = requestOptions.path
       ? `${url}${requestOptions.path}`
@@ -203,7 +203,7 @@ const syncIndividual = async (
     recentRequests.push(requestData);
 
     logger(`IndexedDB cache enabled: ${useIndexDbCache}`, "DEBUG"); // Check IndexedDB cache if enabled
-    if (useIndexDbCache && fetchOptions.method == "GET") {
+    if (useIndexDbCache) {
       try {
         // Use custom cache key generator if provided, otherwise use default format
         const cacheKey = options.generateCacheKey
