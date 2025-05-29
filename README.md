@@ -6,6 +6,7 @@ A powerful React hook for managing state synchronization with intelligent cachin
 
 - ⚡ Automatic state synchronization
 - 📦 Intelligent request caching
+- 💾 Persistent IndexedDB caching
 - 🔌 Network status integration
 - 🎯 Window focus detection
 - 📡 Custom event triggers
@@ -134,6 +135,43 @@ useSync({
 });
 ```
 
+### IndexedDB Persistent Cache
+
+```typescript
+// Enable IndexedDB cache globally
+useSync({
+  indexDbCache: true,  // Enable persistent storage
+  // Default cache duration is 24 hours
+  // ...other config
+});
+
+// Enable for specific requests
+const fetchOrders = [{
+  key: "users",
+  action: setUsers,
+  indexDbCache: true, // Enable IndexedDB caching for this request
+  // ...other config
+}];
+
+// Background update with immediate cache usage
+const fetchOrders = [{
+  key: "users",
+  action: setUsers,
+  options: {
+    indexDbCache: true,
+    updateIndexDbData: true, // Use cache immediately but update in background
+  }
+}];
+
+// IndexedDB functions are also exported for direct usage
+import { 
+  storeInIndexedDB,
+  getFromIndexedDB, 
+  deleteFromIndexedDB, 
+  clearIndexedDBCache 
+} from "@sirajju/use-sync";
+```
+
 ### Logging System
 
 ```typescript
@@ -202,7 +240,8 @@ interface useSyncProps {
   onError?: (error: any) => void;     // Error callback
   logger?: boolean;                   // Enable logging
   logLevel?: "DEBUG" | "INFO" | "WARN" | "ERROR";
-  cacheDuration?: number;             // Cache duration in ms
+  cacheDuration?: number;             // In-memory cache duration in ms
+  indexDbCache?: boolean;             // Enable IndexedDB persistent cache
   customFetch?: (url: string, options: any) => Promise<Response>; // Custom fetch
 }
 ```
@@ -216,8 +255,12 @@ type order = {
   allowDuplicates?: boolean;       // Allow parallel requests
   refetchOnFocus?: boolean;        // Refetch on window focus
   refetchOnline?: boolean;         // Refetch when online
+  indexDbCache?: boolean;          // Use IndexedDB for persistent cache
   triggerEvents?: (keyof WindowEventMap)[]; // Window event names only
-  options?: RequestInit;           // Fetch options
+  options?: RequestInit & {
+    indexDbCache?: boolean;        // Enable IndexedDB at option level
+    updateIndexDbData?: boolean;   // Use cache, then update in background
+  };           
 };
 ```
 
