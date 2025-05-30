@@ -6,3 +6,6 @@ export declare const getFromIndexedDB: (key: string) => Promise<{
 } | null>;
 export declare const deleteFromIndexedDB: (key: string) => Promise<void>;
 export declare const clearIndexedDBCache: () => Promise<void>;
+export declare const cleanExpiredIndexedDBCache: () => Promise<{
+    removed: number;
+}>;

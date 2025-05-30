@@ -16,6 +16,7 @@ import {
   getFromIndexedDB,
   deleteFromIndexedDB,
   clearIndexedDBCache,
+  cleanExpiredIndexedDBCache,
 } from "./indexdb";
 
 // Global state
@@ -28,6 +29,8 @@ let isFetchPendingForSameItem: string[] = [];
 let CACHE_DURATION = 5 * 1000;
 
 let INDEXDB_CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 hours default
+const CLEANUP_INTERVAL_MS = 1000 * 60 * 60 * 24; // Daily cleanup by default
+const LAST_CLEANUP_KEY = 'useSyncLastCleanup'; // Key for localStorage
 
 // Global storage
 const cache = new Map<string, CacheEntry>();
@@ -124,6 +127,92 @@ const clearCache = async (key?: string) => {
   } else {
     cache.clear();
     await clearIndexedDBCache();
+  }
+};
+
+/**
+ * Clean expired entries from memory cache
+ * @returns The number of entries removed
+ */
+const cleanExpiredMemoryCache = (): number => {
+  const now = Date.now();
+  let expiredCount = 0;
+  
+  // Iterate through all entries in memory cache
+  for (const [key, entry] of cache.entries()) {
+    if (entry.expiresAt && now > entry.expiresAt) {
+      // This entry has expired, remove it
+      cache.delete(key);
+      expiredCount++;
+    }
+  }
+  
+  if (expiredCount > 0) {
+    logger(`Cleaned ${expiredCount} expired items from memory cache`, "DEBUG");
+  }
+  return expiredCount;
+};
+
+/**
+ * Check if it's time to clean up the cache
+ * @returns True if cleanup should happen, false otherwise
+ */
+const shouldCleanCache = (): boolean => {
+  try {
+    const lastCleanupStr = localStorage.getItem(LAST_CLEANUP_KEY);
+    if (!lastCleanupStr) {
+      // No record of last cleanup, should clean
+      return true;
+    }
+    
+    const lastCleanup = parseInt(lastCleanupStr, 10);
+    const now = Date.now();
+    
+    // Clean if it's been more than CLEANUP_INTERVAL_MS since last cleanup
+    return (now - lastCleanup) > CLEANUP_INTERVAL_MS;
+  } catch (error) {
+    // If there's any error (e.g., localStorage not available), default to cleaning
+    logger(`Error checking cache cleanup time: ${error}`, "ERROR");
+    return true;
+  }
+};
+
+/**
+ * Update the last cleanup timestamp in localStorage
+ */
+const updateLastCleanupTime = (): void => {
+  try {
+    localStorage.setItem(LAST_CLEANUP_KEY, Date.now().toString());
+  } catch (error) {
+    logger(`Error updating last cleanup time: ${error}`, "ERROR");
+  }
+};
+
+/**
+ * Clean all expired items from both memory and IndexedDB caches
+ */
+const cleanAllExpiredCache = async (): Promise<{ memory: number, indexedDB: number }> => {
+  try {
+    logger("Starting cache cleanup process", "DEBUG");
+    
+    // Clean memory cache (synchronous, fast)
+    const memoryRemoved = cleanExpiredMemoryCache();
+    
+    // Clean IndexedDB cache (asynchronous, slower)
+    const { removed: indexedDBRemoved } = await cleanExpiredIndexedDBCache();
+    
+    // Update last cleanup time
+    updateLastCleanupTime();
+    
+    logger(`Cache cleanup complete. Removed ${memoryRemoved} memory items and ${indexedDBRemoved} IndexedDB items`, "INFO");
+    
+    return {
+      memory: memoryRemoved,
+      indexedDB: indexedDBRemoved
+    };
+  } catch (error) {
+    logger(`Error during cache cleanup: ${error}`, "ERROR");
+    return { memory: 0, indexedDB: 0 };
   }
 };
 
@@ -246,7 +335,8 @@ const syncIndividual = async (
                         requestUrl,
                         requestOptions.params
                       )
-                    : cacheKey; // Use original key if no generator                  // Update IndexedDB with fresh data
+                    : cacheKey; // Use original key if no generator
+                  // Update IndexedDB with fresh data
                   const expiresAt =
                     Date.now() +
                     (requestOptions.indexDbCacheDuration ||
@@ -872,9 +962,21 @@ const useSync = ({
       window.history.replaceState = originalReplaceState;
     };
   }, [location, syncData]);
-
   useEffect(() => {
     mountedRef.current = true;
+    
+    // Check and run cache cleanup if needed
+    if (shouldCleanCache()) {
+      logger("Running scheduled cache cleanup", "INFO");
+      cleanAllExpiredCache()
+        .then(({ memory, indexedDB }) => {
+          logger(`Scheduled cleanup completed. Removed ${memory} memory items and ${indexedDB} IndexedDB items`, "INFO");
+        })
+        .catch((error) => {
+          logger(`Error during scheduled cache cleanup: ${error}`, "ERROR");
+        });
+    }
+    
     const cleanup = syncData();
 
     return () => {

@@ -145,3 +145,60 @@ export const clearIndexedDBCache = async (): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Clean expired entries from IndexedDB
+ * This function scans through all entries and removes the ones that have expired
+ */
+export const cleanExpiredIndexedDBCache = async (): Promise<{ removed: number }> => {
+  try {
+    const db = await initializeDB();
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    
+    let expiredCount = 0;
+    const now = Date.now();
+    
+    return new Promise((resolve, reject) => {
+      // Open a cursor to iterate through all entries
+      const request = store.openCursor();
+      
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          // Check if this entry is expired
+          const entry = cursor.value;
+          if (entry.expiresAt && now > entry.expiresAt) {
+            // Delete the expired entry
+            const deleteRequest = cursor.delete();
+            deleteRequest.onsuccess = () => {
+              expiredCount++;
+            };
+          }
+          // Move to the next entry
+          cursor.continue();
+        } else {
+          // No more entries to process, we're done
+          console.log(`Cleaned up ${expiredCount} expired entries from IndexedDB`);
+          resolve({ removed: expiredCount });
+        }
+      };
+      
+      request.onerror = (e) => {
+        console.error('Error in cleanExpiredIndexedDBCache:', (e.target as IDBRequest).error);
+        reject(`Error cleaning expired entries: ${(e.target as IDBRequest).error}`);
+      };
+      
+      transaction.oncomplete = () => {
+        resolve({ removed: expiredCount });
+      };
+      
+      transaction.onerror = (e) => {
+        reject(`Transaction error: ${transaction.error}`);
+      };
+    });
+  } catch (error) {
+    console.error('Error cleaning IndexedDB cache:', error);
+    return { removed: 0 };
+  }
+};
